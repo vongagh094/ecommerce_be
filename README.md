@@ -45,3 +45,23 @@ poetry install
 ### 4. Deploy to AWS App Runner
 
 Follow along in the blog post to configure AWS SSM Parameter Store and deploy the FastAPI to AWS App Runner.
+
+## Database Management Scripts
+
+### dbup.bat
+**Usage:**
+```
+./dbup
+```
+- Starts required Docker containers (e.g., PostgreSQL).
+- Waits for services to be ready.
+- Waits for migration scripts to the PostgreSQL container.
+- Waits for executes all `.sql` migration scripts to set up or update the database schema.
+
+
+### dbdown.bat
+**Usage:**
+```
+./dbdown
+```
+- Stops and removes the Docker containers used for the database and related services.
