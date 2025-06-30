@@ -48,11 +48,17 @@ if %errorlevel% neq 0 (
 for %%f in (.\Repository\Migration_scripts\postgres\*.sql) do (
     echo Executing %%~nxf...
     @echo off
-    docker exec -i Postgres_container psql -U postgres_user -d ecommerce_db -f /migrations/%%~nxf
+    docker exec -i Postgres_container psql -U postgres_user -d ecommerce_db -f /migrations/%%~nxf>nul 2>&1
     if !errorlevel! neq 0 (
         echo [ERR]: Failed executing %%~nxf in PostgreSQL
     )
 )
 echo [STATUS]: PostgreSQL migration completed.
+
+echo [STATUS]: Enable the Rabbitmq stream and stream management plugins
+
+docker exec rabbitmq-stream rabbitmq-plugins enable rabbitmq_stream rabbitmq_stream_management>nul 2>&1
+
+echo [STATUS]: RabbitMQ plugins enabled.
 
 echo [SUCCESS]: All services initialized successfully!
