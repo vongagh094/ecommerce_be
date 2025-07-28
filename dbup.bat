@@ -8,8 +8,6 @@ if !errorlevel! neq 0 (
     exit /b %errorlevel%
 )
 
-
-
 echo [STATUS]: Waiting for services to be ready...
 set MAX_ATTEMPTS=30
 set INTERVAL=10
@@ -17,8 +15,15 @@ set INTERVAL=10
 for /L %%i in (1,1,%MAX_ATTEMPTS%) do (
     set "all_ready=true"
 
-    REM Check Postgres
-    docker exec -i Postgres_container psql -U postgres_user -d ecommerce_db -c "SELECT 1" >nul 2>&1
+    REM Check Redis connection
+    docker exec -i redis_container redis-cli ping >nul 2>&1
+    if !errorlevel! neq 0 (
+        echo [STATUS]: Wait for Redis connection to be ready.
+        set "all_ready=false"
+    )
+
+    REM Check Postgres connection
+    docker exec -i Postgres_container psql -U postgres -d ecommerce_db -c "SELECT 1" >nul 2>&1
     if !errorlevel! neq 0 (
         echo [STATUS]: Waiting for PostgreSQL...
         set "all_ready=false"
@@ -42,18 +47,35 @@ exit /b 1
 echo [STEP]: Migrating PostgreSQL...
 docker cp ".\Repository\Migration_scripts\postgres" Postgres_container:/migrations/
 if %errorlevel% neq 0 (
-    echo "[ERR]: Failed to copy migration scripts to Redis container."
+    echo [ERR]: Failed to copy migration scripts to Redis container.
     exit /b %errorlevel%
 )
 for %%f in (.\Repository\Migration_scripts\postgres\*.sql) do (
     echo Executing %%~nxf...
     @echo off
-    docker exec -i Postgres_container psql -U postgres_user -d ecommerce_db -f /migrations/%%~nxf>nul 2>&1
+    docker exec -i Postgres_container psql -U postgres -d ecommerce_db -f /migrations/%%~nxf>nul
     if !errorlevel! neq 0 (
         echo [ERR]: Failed executing %%~nxf in PostgreSQL
     )
 )
 echo [STATUS]: PostgreSQL migration completed.
+
+echo [STATUS]: Initializing Redis with data...
+
+docker cp ".\Repository\migration_scripts\redis" redis_container:/data/
+if %errorlevel% neq 0 (
+    echo [ERR]: Failed to copy migration scripts to Redis container.
+    exit /b %errorlevel%
+)
+for %%f in (.\Repository\migration_scripts\redis\*.rdb) do (
+    echo Restoring %%~nxf...
+    docker exec -i redis_container sh -c "cat /data/redis/%%~nxf | redis-cli --pipe"
+    if %errorlevel% neq 0 (
+        echo "[ERR]: Failed to restore %%~nxf into Redis. Continuing with the next file..."
+    )
+)
+
+echo [STATUS]: Redis migration completed
 
 echo [STATUS]: Enable the Rabbitmq stream and stream management plugins
 
