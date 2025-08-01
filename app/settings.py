@@ -4,7 +4,7 @@ from typing import Optional
 # Database Configuration
 DATABASE_URL = config(
     "DATABASE_URL", 
-    default="postgresql://user:password@localhost:5432/ecommerce_db"
+    default="postgresql://postgres:nhomec123@localhost:5432/ecommerce_db"
 )
 
 # Application Configuration

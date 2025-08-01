@@ -28,15 +28,15 @@ services:
 #    depends_on:
 #      - redis
 #
-#  ws-server:
-#    build: ./ws-server
-#    container_name: ws_server_container
-#    ports:
-#      - "8080:8080"
-#    environment:
-#      - REDIS_URL=redis://redis:6379
-#    depends_on:
-#      - redis
+  ws-server:
+   build: ./ws-server
+   container_name: ws_server_container
+   ports:
+     - "8080:8080"
+   environment:
+     - REDIS_URL=redis://redis:6379
+   depends_on:
+     - redis
 
   postgres:
     image: postgres:latest
