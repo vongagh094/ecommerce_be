@@ -72,7 +72,7 @@ class RedisService:
                 self.redis_repository.publish(channel,
                                               json.dumps({"auction_id":auction_id,
                                                         "current_bid":current_bid}))
-                print (self.redis_repository.set(auction_id, current_bid))
+                self.redis_repository.set(auction_id, current_bid,nx = False)
             else:
                 print(f"Bid {current_bid} is not higher than current highest {highest_bid}")
                 return False

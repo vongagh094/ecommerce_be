@@ -3,10 +3,10 @@ from .basic import BasicModel
 from sqlalchemy import Column, DateTime, Integer, String, Boolean,ForeignKey, Enum as SqlEnum
 from sqlalchemy.orm import relationship
 
-class Auction_object(str, Enum):
-    highest_total = "HIGHEST_TOTAL"
-    highest_per_night = "HIGHEST_PER_NIGHT"
-    hybrid = "HYBRID"
+class Auction_object(Enum):
+    HIGHEST_TOTAL = "HIGHEST_TOTAL"
+    HIGHEST_PERCENT = "HIGHEST_PERCENT"
+    HYBRID = "HYBRID"
 class Auction(BasicModel):
     __tablename__ = "auctions"
 
@@ -21,9 +21,9 @@ class Auction(BasicModel):
     minimum_bid =Column(Integer)
     auction_start_time = Column(DateTime)
     auction_end_time =Column(DateTime)
-    objective =Column(
-        SqlEnum(Auction_object),
-        default=Auction_object.highest_total,
+    objective = Column(
+        SqlEnum(Auction_object, name="auction_objective"),
+        default=Auction_object.HIGHEST_TOTAL,
         nullable=False
     )
     status = Column(String,default="activate")

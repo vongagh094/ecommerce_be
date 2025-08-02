@@ -11,12 +11,14 @@ class BidService:
             existing_bid = self.bid_repository.get_existing_bid(bid_data.get("user_id"),bid_data.get("auction_id"))
             if existing_bid:
                 #Update the existing bid
-                existing_bid.bid_amount = bid_data.get("bid_amount")
+                existing_bid.total_amount = bid_data.get("bid_amount")
                 existing_bid.bid_time = bid_data.get("bid_time")
                 existing_bid.updated_at = bid_data.get("created_at")
-                existing_bid.is_winning_bid = bid_data.get("is_winning_bid", False)
-                existing_bid.auto_bid_max = bid_data.get("auto_bid_max")
                 existing_bid.status = bid_data.get("status", "active")
+                existing_bid.check_in = bid_data.get("check_in")
+                existing_bid.check_out = bid_data.get("check_out")
+                existing_bid.allow_partial = bid_data.get("allow_partial")
+
                 return self.bid_repository.update_bid(existing_bid)
             else:
                 # Create a new bid
