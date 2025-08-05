@@ -17,4 +17,4 @@ class Bids(BasicModel):
     status = Column(String,default="active")
 
     # relationship
-    auction = relationship("Auction",back_populates="bids")
+    auction = relationship("AuctionDB",back_populates="bids")

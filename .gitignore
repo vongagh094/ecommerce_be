@@ -162,3 +162,4 @@ cython_debug/
 /Repository/data_log
 /Repository/db_data
 /ws-server/node_modules
+.serena

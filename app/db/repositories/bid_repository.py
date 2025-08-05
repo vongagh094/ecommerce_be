@@ -1,5 +1,5 @@
 from app.db.models.Bid import Bids
-from app.db.models.auction import Auction
+from app.db.models.auction import AuctionDB
 from sqlalchemy.orm import Session
 
 

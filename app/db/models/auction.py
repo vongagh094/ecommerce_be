@@ -7,7 +7,7 @@ class Auction_object(Enum):
     HIGHEST_TOTAL = "HIGHEST_TOTAL"
     HIGHEST_PERCENT = "HIGHEST_PERCENT"
     HYBRID = "HYBRID"
-class Auction(BasicModel):
+class AuctionDB(BasicModel):
     __tablename__ = "auctions"
 
     property_id = Column(Integer, nullable=False)
