@@ -11,7 +11,6 @@ from app.features.property.repositories.property_amenity_repository import Prope
 from app.features.property.repositories.property_image_repository import PropertyImageRepository
 from app.features.property.repositories.property_repository import PropertyRepository
 from app.features.wishlist.repositories.wishlist_repository import WishlistRepository
-from app.features.wishlist.repositories.wishlist_property_repository import WishlistPropertyRepository
 from app.db.repositories.redis_repository import RedisRepository
 from app.services.auction_service import AuctionService
 from app.services.bid_service import BidService
@@ -72,11 +71,6 @@ class Container(containers.DeclarativeContainer):
         db=db_session
     )
     
-    property_repository = providers.Factory(
-        PropertyRepository,
-        db=db_session
-    )
-    
     property_amenity_repository = providers.Factory(
         PropertyAmenityRepository,
         db=db_session
@@ -98,13 +92,20 @@ class Container(containers.DeclarativeContainer):
     )
     
     wishlist_property_repository = providers.Factory(
-        WishlistPropertyRepository,
+        WishlistRepository,
         db=db_session
     )
         
     redis_repository = providers.Factory(
         RedisRepository,
         redis_client=db_redis
+    )
+
+    property_repository = providers.Factory(
+        PropertyRepository,
+        db=db_session,
+        property_amenity_repository=property_amenity_repository,
+        property_image_repository=property_image_repository
     )
 
     # Services
@@ -138,8 +139,8 @@ class Container(containers.DeclarativeContainer):
     property_service = providers.Factory(
         PropertyService,
         property_repository=property_repository,
-        property_image_repository=property_image_repository,
-        property_amenity_repository=property_amenity_repository
+        property_amenity_repository=property_amenity_repository,
+        property_image_repository=property_image_repository
     )
 
     property_amenity_service = providers.Factory(
