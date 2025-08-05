@@ -2,9 +2,9 @@ import os
 from functools import lru_cache
 from pydantic import Field, BaseModel
 
+# app/config.py
 class PostgresConfig(BaseModel):
-    url: str = Field(default="postgresql://postgres:postgres@localhost:5432/postgres")
-
+    url: str = Field(default="postgresql://postgres:nhomec123@localhost:5432/ecommerce_db")
 class RedisConfig(BaseModel):
     host: str = Field(default="localhost")
     port: int = Field(default=6379)
