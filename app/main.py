@@ -13,7 +13,7 @@ from app.features.property.api.property_type_routes import router as property_ty
 from app.features.property.api.property_category_routes import router as property_category_router
 from app.core.container import Container
 from app.services.CORS import setup_cors
-
+from app.api.review import router as review_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Application startup")
@@ -31,7 +31,8 @@ def create_app() -> FastAPI:
         "app.features.property.api.property_routes",
         "app.features.property.api.property_amenity_routes",
         "app.features.property.api.property_type_routes",
-        "app.features.property.api.property_category_routes"
+        "app.features.property.api.property_category_routes",
+        "app.api.review"
     ])
     """Create and configure the FastAPI application."""
     app = FastAPI(
@@ -51,7 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(property_amenity_router, prefix="/property-amenities", tags=["Property Amenities"])
     app.include_router(property_type_router, prefix="/property-types", tags=["Property Types"])
     app.include_router(property_category_router, prefix="/property-categories", tags=["Property Categories"])
-    app.include_router(upload.router)
+    app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
     return app
 
 app = create_app()

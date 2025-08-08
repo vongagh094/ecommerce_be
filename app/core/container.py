@@ -1,5 +1,7 @@
 from dependency_injector import containers, providers
 from pusher import Pusher
+
+from app.db.repositories import review_repository
 from app.features.messages.core.settings import get_settings
 from app.db.sessions.session import get_db_session, get_redis, get_rabbitmq_stream
 from app.db.repositories.bid_repository import BidRepository
@@ -22,7 +24,8 @@ from app.features.property.services.property_image_service import PropertyImageS
 from app.features.wishlist.services.wishlist_service import WishlistService
 from app.services.rabbitMQ_service import RabbitMQService
 from app.services.redis_service import RedisService
-
+from app.db.repositories.review_repository import ReviewRepository
+from app.services.review_service import ReviewService
 class Container(containers.DeclarativeContainer):
     # Config
     config = providers.Singleton(get_settings)
@@ -107,7 +110,10 @@ class Container(containers.DeclarativeContainer):
         property_amenity_repository=property_amenity_repository,
         property_image_repository=property_image_repository
     )
-
+    review_repository = providers.Factory(
+        ReviewRepository,
+        db=db_session
+    )
     # Services
     bid_service = providers.Factory(
         BidService,
@@ -158,4 +164,8 @@ class Container(containers.DeclarativeContainer):
         WishlistService,
         wishlist_repository=wishlist_repository,
         wishlist_property_repository=wishlist_property_repository
+    )
+    review_service = providers.Factory(
+        ReviewService,
+        review_repository=review_repository
     )
