@@ -1,5 +1,7 @@
 from dependency_injector import containers, providers
 from pusher import Pusher
+
+from app.db.repositories import review_repository
 from app.features.messages.core.settings import get_settings
 from app.db.sessions.session import get_db_session, get_redis, get_rabbitmq_stream
 from app.db.repositories.bid_repository import BidRepository
@@ -11,6 +13,7 @@ from app.features.property.repositories.property_amenity_repository import Prope
 from app.features.property.repositories.property_image_repository import PropertyImageRepository
 from app.features.property.repositories.property_repository import PropertyRepository
 from app.features.wishlist.repositories.wishlist_repository import WishlistRepository
+from app.features.notification.repositories.notification_repository import NotificationRepository
 from app.db.repositories.redis_repository import RedisRepository
 from app.services.auction_service import AuctionService
 from app.services.bid_service import BidService
@@ -20,9 +23,11 @@ from app.features.property.services.property_service import PropertyService
 from app.features.property.services.property_amenity_service import PropertyAmenityService
 from app.features.property.services.property_image_service import PropertyImageService
 from app.features.wishlist.services.wishlist_service import WishlistService
+from app.features.notification.services.notification_service import NotificationService
 from app.services.rabbitMQ_service import RabbitMQService
 from app.services.redis_service import RedisService
-
+from app.db.repositories.review_repository import ReviewRepository
+from app.services.review_service import ReviewService
 class Container(containers.DeclarativeContainer):
     # Config
     config = providers.Singleton(get_settings)
@@ -107,7 +112,14 @@ class Container(containers.DeclarativeContainer):
         property_amenity_repository=property_amenity_repository,
         property_image_repository=property_image_repository
     )
-
+    review_repository = providers.Factory(
+        ReviewRepository,
+        db=db_session
+    )
+    notification_repository = providers.Factory(
+        NotificationRepository,
+        db=db_session
+    )
     # Services
     bid_service = providers.Factory(
         BidService,
@@ -158,4 +170,12 @@ class Container(containers.DeclarativeContainer):
         WishlistService,
         wishlist_repository=wishlist_repository,
         wishlist_property_repository=wishlist_property_repository
+    )
+    review_service = providers.Factory(
+        ReviewService,
+        review_repository=review_repository
+    )
+    notification_service = providers.Factory(
+        NotificationService,
+        notification_repository=notification_repository
     )
