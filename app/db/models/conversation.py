@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Column, BigInteger, Boolean, DateTime, ForeignKey, String
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.sessions.session import Base
@@ -6,10 +6,10 @@ from app.db.sessions.session import Base
 class Conversation(Base):
     __tablename__ = "conversation"
 
-    id = Column(Integer, primary_key=True, index=True)
-    property_id = Column(Integer, ForeignKey("properties.id"))
-    guest_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    host_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(BigInteger, primary_key=True, index=True)
+    property_id = Column(BigInteger, ForeignKey("properties.id"))
+    guest_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    host_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     last_message_at = Column(DateTime)
     is_archived = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now())
