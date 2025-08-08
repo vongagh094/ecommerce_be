@@ -7,25 +7,25 @@ from .basic import BasicModel
 class Review(BasicModel):
     __tablename__ = "reviews"
 
-    booking_id = Column(UUID(as_uuid=True), ForeignKey("bookings.id"), nullable=False)
-    reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    reviewee_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
+    booking_id = Column(UUID(as_uuid=True), nullable=True)
+    reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
 
     # Main review fields
-    rating = Column(Integer, nullable=False)
-    review_text = Column(String, nullable=True)
-    review_type = Column(String, nullable=False)  # Có thể dùng Enum nếu có các type cố định
+    rating = Column(Integer, nullable=True)
+    review_text = Column(String, nullable=False)
+    review_type = Column(String, nullable=True)  # Có thể dùng Enum nếu có các type cố định
     response_text = Column(String, nullable=True)
     is_visible = Column(Boolean, default=True, nullable=False)
 
     # Detailed ratings
-    accuracy_rating = Column(Integer, nullable=True)
-    checking_rating = Column(Integer, nullable=True)
-    cleanliness_rating = Column(Integer, nullable=True)
-    communication_rating = Column(Integer, nullable=True)
-    location_rating = Column(Integer, nullable=True)
-    value_rating = Column(Integer, nullable=True)
+    accuracy_rating = Column(Integer, nullable=False)
+    checking_rating = Column(Integer, nullable=False)
+    cleanliness_rating = Column(Integer, nullable=False)
+    communication_rating = Column(Integer, nullable=False)
+    location_rating = Column(Integer, nullable=False)
+    value_rating = Column(Integer, nullable=False)
 
     def __repr__(self):
         return f"<Review(id={self.id}, booking_id={self.booking_id}, " \

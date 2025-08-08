@@ -54,3 +54,65 @@ class ReviewService:
                 status_code=500,
                 detail=f"Service error: {str(e)}"
             )
+    async def create_review(self, review_data: ReviewRequestDTO) -> CreateReviewResponseDTO:
+        """
+        Create a new review từ simple request (backward compatibility)
+        """
+        try:
+            # Validate rating
+            if not (1 <= review_data.rating <= 5):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Rating must be between 1 and 5"
+                )
+
+            # Validate review text
+            if not review_data.review_text or len(review_data.review_text.strip()) == 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Review text cannot be empty"
+                )
+
+            # Validate user_id
+            if not review_data.reviewer_id :
+                raise HTTPException(
+                    status_code=400,
+                    detail="User ID cannot be empty"
+                )
+
+            # Validate user_id is numeric
+            try:
+                int(review_data.reviewer_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="User ID must be a valid number"
+                )
+
+            # Validate created_at a format
+            try:
+                datetime.fromisoformat(review_data.created_at.replace('Z', '+00:00'))
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid created_at format. Use ISO format"
+                )
+
+            # Create review - repository sẽ populate tất cả fields
+            review_response = await self.review_repository.create_review(review_data)
+
+            return CreateReviewResponseDTO(
+                success=True,
+                message="Review created successfully",
+                review_id=review_response.id,
+                data=review_response  # CompleteReviewResponseDTO với tất cả fields
+            )
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error in review service - create_review: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Service error: {str(e)}"
+            )

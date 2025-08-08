@@ -24,3 +24,11 @@ async def get_reviews(
         property_id=property_id
     )
 
+
+@router.post("/create_review", response_model=CreateReviewResponseDTO)
+@inject
+async def create_review(
+        review_data: ReviewRequestDTO,
+        service: ReviewService = Depends(Provide[Container.review_service])
+):
+    return await service.create_review(review_data)

@@ -2,10 +2,10 @@
 from typing import Tuple, List, Optional
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
-
+import uuid
 from app.db.models.property import Property
 from app.db.models.review import Review
-from app.schemas.ReviewDTO import ReviewResponseDTO, ReviewRequestDTO
+from app.schemas.ReviewDTO import ReviewResponseDTO, ReviewRequestDTO, CompleteReviewResponseDTO
 from fastapi import HTTPException
 from app.db.models.user import User
 import logging
@@ -87,4 +87,77 @@ class ReviewRepository:
             raise HTTPException(
                 status_code=500,
                 detail=f"Internal server error: {str(e)}"
+            )
+    async def create_review(self, review_data: ReviewRequestDTO) -> CompleteReviewResponseDTO:
+        """
+        Create a new review từ simple request
+        """
+        try:
+            # Verify property exists
+            property_obj = self.db.query(Property).filter(Property.id == review_data.property_id).first()
+            if not property_obj:
+                raise HTTPException(status_code=404, detail="Property not found")
+
+            # Convert user_id string to reviewer_id int
+            try:
+                reviewer_id = int(review_data.reviewer_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid user_id format")
+
+            # Verify reviewer exists
+            reviewer = self.db.query(User).filter(User.id == reviewer_id).first()
+            if not reviewer:
+                raise HTTPException(status_code=404, detail="Reviewer not found")
+
+            # Check if reviewer is the property host
+            if property_obj.host_id == reviewer_id:
+                raise HTTPException(status_code=400, detail="Cannot review your own property")
+
+            # Get reviewee (host of the property)
+            reviewee_id = property_obj.host_id
+
+            # Create new review theo model mới
+            new_review = Review(
+                # Foreign keys - optional theo model
+                reviewer_id=reviewer_id,
+                reviewee_id=reviewee_id,
+                property_id=review_data.property_id,
+                booking_id= uuid.UUID(review_data.booking_id),
+
+                # Main review fields
+                rating=review_data.rating,  # Integer theo model
+                review_text=review_data.review_text,  # Required
+                review_type="GUEST_TO_HOST",  # Optional
+                response_text="",  # Optional
+                is_visible=True,  # Default True
+            )
+
+            self.db.add(new_review)
+            self.db.commit()
+            self.db.refresh(new_review)
+
+            # Convert to CompleteReviewResponseDTO
+            review_dto = CompleteReviewResponseDTO(
+                id=str(new_review.id),
+                booking_id=str(new_review.booking_id) if new_review.booking_id else None,
+                reviewer_id=new_review.reviewer_id,
+                reviewee_id=new_review.reviewee_id,
+                property_id=new_review.property_id,
+                rating=new_review.rating,
+                review_text=new_review.review_text,
+                review_type=new_review.review_type,
+                response_text=new_review.response_text,
+                is_visible=new_review.is_visible
+            )
+
+            return review_dto
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error creating review: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Database error: {str(e)}"
             )
