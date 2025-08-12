@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.orm import relationship
@@ -9,7 +9,7 @@ class PropertyImage(Base):
     __tablename__ = "property_images"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
+    property_id = Column(BigInteger, ForeignKey("properties.id"), nullable=False)
     image_url = Column(Text, nullable=False)
     alt_text = Column(String(255))
     title = Column(String(255))

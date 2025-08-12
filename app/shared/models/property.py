@@ -9,13 +9,11 @@ from sqlmodel import SQLModel, Field, Relationship
 from .base import BaseModel, TimestampMixin
 
 
-class Property(BaseModel, TimestampMixin, table=True):
-    """Property model."""
+class Property(BaseModel, TimestampMixin, table=False):
+    """Property DTO (not a DB table)."""
     
-    __tablename__ = "properties"
-    
-    id: Optional[int] = Field(default=None, primary_key=True)
-    host_id: int = Field(foreign_key="users.id")
+    id: Optional[int] = Field(default=None)
+    host_id: int = Field(default=None)
     title: str
     description: Optional[str] = None
     property_type: str
@@ -41,12 +39,10 @@ class Property(BaseModel, TimestampMixin, table=True):
     status: str = Field(default="DRAFT")
 
 
-class PropertyImage(BaseModel, TimestampMixin, table=True):
-    """Property image model."""
+class PropertyImage(BaseModel, TimestampMixin, table=False):
+    """Property image DTO (not a DB table)."""
     
-    __tablename__ = "property_images"
-    
-    property_id: int = Field(foreign_key="properties.id")
+    property_id: int = Field(default=None)
     image_url: str
     alt_text: Optional[str] = None
     title: Optional[str] = None
@@ -54,10 +50,8 @@ class PropertyImage(BaseModel, TimestampMixin, table=True):
     is_primary: bool = Field(default=False)
 
 
-class PropertyAmenity(SQLModel, table=True):
-    """Property amenity junction table."""
+class PropertyAmenity(SQLModel, table=False):
+    """Property amenity junction DTO (not a DB table)."""
     
-    __tablename__ = "property_amenities"
-    
-    property_id: int = Field(foreign_key="properties.id", primary_key=True)
-    amenity_id: UUID = Field(foreign_key="amenities.id", primary_key=True)
+    property_id: int = Field(default=None)
+    amenity_id: UUID = Field(default=None)

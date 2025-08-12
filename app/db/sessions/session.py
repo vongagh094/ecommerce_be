@@ -4,13 +4,22 @@ from sqlalchemy.orm import sessionmaker, Session
 from app.core.config import get_settings
 import redis
 
+# Define Base before importing models
+Base = declarative_base()
+
+# Import all models to ensure they're registered with SQLAlchemy
+try:
+    from app.db.models import *
+except ImportError:
+    # Models might not be available during initial setup
+    pass
+
 settings = get_settings()
 
 
 engine = create_engine(settings.postgres_db.url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()
 
 def get_db_session() -> Session:
     """Get database session"""

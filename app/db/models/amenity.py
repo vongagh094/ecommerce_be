@@ -15,6 +15,8 @@ class Amenity(Base):
 
     # Relationship
     property_amenities = relationship("PropertyAmenity", back_populates="amenity")
+    # Direct many-to-many to properties for convenience
+    properties = relationship("Property", secondary="property_amenities", back_populates="amenities")
 
 # Imports ở cuối để tránh looped
 from app.db.models.property_amenity import PropertyAmenity

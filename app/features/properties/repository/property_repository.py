@@ -5,7 +5,11 @@ from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func
 
-from ....shared.models.property_models import Property, PropertyImage, PropertyAmenity, Amenity, User, Review, Auction
+from app.db.models.property import Property
+from app.db.models.property_image import PropertyImage
+from app.db.models.property_amenity import PropertyAmenity
+from app.db.models.amenity import Amenity
+from app.db.models.user import User
 from ....shared.exceptions import NotFoundError
 from ..schemas.search import PropertySearchParams, PropertyFilterParams
 
@@ -37,9 +41,6 @@ class PropertyRepository:
         # Apply guest capacity filter
         if params.guests:
             query = query.filter(Property.max_guests >= params.guests)
-        
-        # TODO: Add availability filter based on check_in/check_out dates
-        # This would require joining with calendar_availability table
         
         # Get total count
         total = query.count()
@@ -105,9 +106,6 @@ class PropertyRepository:
         
         if params.cancellation_policy:
             query = query.filter(Property.cancellation_policy.in_(params.cancellation_policy))
-        
-        # TODO: Add amenities filter (requires join with property_amenities)
-        # TODO: Add rating filter (requires aggregation from reviews)
         
         # Get total count
         total = query.count()
@@ -178,8 +176,7 @@ class PropertyRepository:
             joinedload(Property.house_rules),
             joinedload(Property.location_descriptions),
             joinedload(Property.host),
-            joinedload(Property.reviews),
-            joinedload(Property.auctions)
+            joinedload(Property.auctions),
         ).filter(Property.id == property_id).first()
         
         if not property:
