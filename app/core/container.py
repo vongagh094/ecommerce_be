@@ -11,6 +11,7 @@ from app.features.property.repositories.property_amenity_repository import Prope
 from app.features.property.repositories.property_image_repository import PropertyImageRepository
 from app.features.property.repositories.property_repository import PropertyRepository
 from app.features.wishlist.repositories.wishlist_repository import WishlistRepository
+from app.features.notification.repositories.notification_repository import NotificationRepository
 from app.db.repositories.redis_repository import RedisRepository
 from app.services.auction_service import AuctionService
 from app.services.bid_service import BidService
@@ -20,6 +21,7 @@ from app.features.property.services.property_service import PropertyService
 from app.features.property.services.property_amenity_service import PropertyAmenityService
 from app.features.property.services.property_image_service import PropertyImageService
 from app.features.wishlist.services.wishlist_service import WishlistService
+from app.features.notification.services.notification_service import NotificationService
 from app.services.rabbitMQ_service import RabbitMQService
 from app.services.redis_service import RedisService
 from app.db.repositories.review_repository import ReviewRepository
@@ -119,6 +121,10 @@ class Container(containers.DeclarativeContainer):
         CalendarRepository,
         db=db_session
     )
+    notification_repository = providers.Factory(
+        NotificationRepository,
+        db=db_session
+    )
     # Services
     bid_service = providers.Factory(
         BidService,
@@ -177,4 +183,8 @@ class Container(containers.DeclarativeContainer):
     calendar_service = providers.Factory(
         CalendarService,
         calendar_repository=calendar_repository
+    )
+    notification_service = providers.Factory(
+        NotificationService,
+        notification_repository=notification_repository
     )
