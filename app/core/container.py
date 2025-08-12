@@ -1,7 +1,5 @@
 from dependency_injector import containers, providers
 from pusher import Pusher
-
-from app.db.repositories import review_repository
 from app.features.messages.core.settings import get_settings
 from app.db.sessions.session import get_db_session, get_redis, get_rabbitmq_stream
 from app.db.repositories.bid_repository import BidRepository
@@ -26,6 +24,8 @@ from app.services.rabbitMQ_service import RabbitMQService
 from app.services.redis_service import RedisService
 from app.db.repositories.review_repository import ReviewRepository
 from app.services.review_service import ReviewService
+from app.db.repositories.calender_repository import CalendarRepository
+from app.services.calendar_service import CalendarService
 class Container(containers.DeclarativeContainer):
     # Config
     config = providers.Singleton(get_settings)
@@ -114,6 +114,11 @@ class Container(containers.DeclarativeContainer):
         ReviewRepository,
         db=db_session
     )
+
+    calendar_repository = providers.Factory(
+        CalendarRepository,
+        db=db_session
+    )
     # Services
     bid_service = providers.Factory(
         BidService,
@@ -168,4 +173,8 @@ class Container(containers.DeclarativeContainer):
     review_service = providers.Factory(
         ReviewService,
         review_repository=review_repository
+    )
+    calendar_service = providers.Factory(
+        CalendarService,
+        calendar_repository=calendar_repository
     )
