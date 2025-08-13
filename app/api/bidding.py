@@ -33,7 +33,7 @@ async def call_back(msg:AMQPMessage,
 
         #update Db bid
         saved_bid = bid_service.place_bids(bid_data)
-        #update auction current highest bid
+        #update auction the current highest bid
         if saved_bid:
             auction_service.update_highest_bid(bid_data.get("auction_id"),
                                                bid_data.get("bid_amount"))
@@ -69,3 +69,4 @@ async def receiving_bid(
         rabbitmq_service: RabbitMQService = Depends(Provide[Container.rabbitMQStream_service]),
     ):
         return await rabbitmq_service.use_consumer(callback=call_back)
+
