@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 class WishlistService:
     def __init__(self, db: Session):
         self.repository = WishlistRepository(db)
+        
+    def check_wishlist_exists(self, user_id: int) -> bool:
+        existing_wishlist = self.repository.get_wishlist_by_user_id(user_id)
+        return existing_wishlist is not None
 
     def create_wishlist(self, user_id: int) -> WishlistResponseDTO:
         logger.info(f"Creating wishlist for user_id={user_id}")

@@ -128,7 +128,8 @@ class Container(containers.DeclarativeContainer):
 
     auction_service = providers.Factory(
         AuctionService,
-        auction_repository=auction_repository
+        auction_repository=auction_repository,
+        property_repository=property_repository,
     )
 
     message_service = providers.Factory(

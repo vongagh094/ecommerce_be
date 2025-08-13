@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.features.wishlist.schemas.WishlistDTO import WishlistResponseDTO
+from app.features.wishlist.schemas.WishlistDTO import WishlistResponseDTO, WishlistCheckDTO
 from app.features.wishlist.services.wishlist_service import WishlistService
 from app.db.sessions.session import get_db_session
 
@@ -8,6 +8,14 @@ router = APIRouter()
 
 def get_wishlist_service(db: Session = Depends(get_db_session)) -> WishlistService:
     return WishlistService(db)
+
+@router.get("/check", response_model=WishlistCheckDTO)
+def check_user_wishlist(user_id: int, service: WishlistService = Depends(get_wishlist_service)):
+    try:
+        exists = service.check_wishlist_exists(user_id)
+        return WishlistCheckDTO(exists=exists)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"detail": f"Không thể kiểm tra wishlist: {str(e)}"})   
 
 @router.post("/create", response_model=WishlistResponseDTO)
 def create_user_wishlist(user_id: int, service: WishlistService = Depends(get_wishlist_service)):

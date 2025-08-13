@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 class Bids(BasicModel):
     __tablename__= "bids"
 
-    auction_id = Column(String, ForeignKey("auctions.id"),nullable=False)
+    auction_id = Column(Integer, ForeignKey("auctions.id"),nullable=False)
     user_id = Column(String, nullable=False)
     check_in = Column(DateTime, nullable=False)
     check_out = Column(DateTime, nullable=False)
