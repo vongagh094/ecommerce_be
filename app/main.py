@@ -35,7 +35,7 @@ def create_app() -> FastAPI:
         "app.features.property.api.property_amenity_routes",
         "app.features.property.api.property_type_routes",
         "app.features.property.api.property_category_routes",
-        "app.features.notification.api.notification_routes"
+        "app.features.notification.api.notification_routes",
         "app.api.review",
         "app.api.auction",
         "app.api.calendar"
