@@ -6,3 +6,9 @@ class WishlistResponseDTO(BaseModel):
 
     class Config:
         orm_mode = True
+        
+class WishlistCheckDTO(BaseModel):
+    exists: bool
+
+    class Config:
+        orm_mode = True

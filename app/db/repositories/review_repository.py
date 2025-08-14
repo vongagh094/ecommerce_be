@@ -109,7 +109,7 @@ class ReviewRepository:
             if not reviewer:
                 raise HTTPException(status_code=404, detail="Reviewer not found")
 
-            # Check if reviewer is the property host
+            # Check if the reviewer is the property host
             if property_obj.host_id == reviewer_id:
                 raise HTTPException(status_code=400, detail="Cannot review your own property")
 

@@ -10,9 +10,9 @@ class PropertyAmenityService:
         self.property_amenity_repository = property_amenity_repository
         self.amenity_repository = amenity_repository
 
-    def get_available_amenities(self) -> List[AmenityDTO]:
+    def get_available_amenities(self, offset: int = 0, limit: int = 100) -> List[AmenityDTO]:
         """Retrieve all available amenities for user selection."""
-        amenities = self.amenity_repository.get_all()
+        amenities = self.amenity_repository.get_all_with_pagination(offset=offset, limit=limit)
         return [AmenityDTO.model_validate(amenity) for amenity in amenities]
 
     def assign_amenities_to_property(self, property_id: int, amenity_ids: List[UUIDType]) -> bool:
@@ -21,3 +21,8 @@ class PropertyAmenityService:
         for amenity_id in amenity_ids:
             self.property_amenity_repository.create(property_id, amenity_id)
         return True
+    
+    def search_amenities(self, query: str, offset: int = 0, limit: int = 100) -> List[AmenityDTO]:
+        """Search amenities by name."""
+        amenities = self.amenity_repository.search_amenities(query=query, offset=offset, limit=limit)
+        return [AmenityDTO.model_validate(amenity) for amenity in amenities]

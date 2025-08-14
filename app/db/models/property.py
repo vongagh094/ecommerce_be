@@ -39,7 +39,7 @@ class Property(Base):
     images = relationship("PropertyImage", back_populates="property", foreign_keys="[PropertyImage.property_id]")
     amenities = relationship("PropertyAmenity", back_populates="property", foreign_keys="[PropertyAmenity.property_id]")
     conversations = relationship("Conversation", back_populates="property", foreign_keys="[Conversation.property_id]")
-    # auction = relationship("Auction", back_populates="property", foreign_keys="[Auction.property_id]")
+    auctions = relationship("Auction", back_populates="property", foreign_keys="[Auction.property_id]")
 
 # Imports ở cuối để tránh looped
 from app.db.models.user import User
