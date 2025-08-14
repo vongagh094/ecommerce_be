@@ -42,9 +42,9 @@ async def call_back(msg: AMQPMessage,
             current_time = dt.now().isoformat()
 
             bids_dto = BidsDTO(
-                user_id=int(bid_data.get("user_id")),
+                user_id=bid_data.get("user_id"),
                 property_id=int(bid_data.get("property_id", 0)),
-                auction_id=str(bid_data.get("auction_id")),
+                auction_id=bid_data.get("auction_id"),
                 bid_amount=int(bid_data.get("bid_amount")),
                 bid_time=bid_data.get("bid_time", current_time),
                 check_in=bid_data.get("check_in"),

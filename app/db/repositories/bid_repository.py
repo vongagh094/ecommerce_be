@@ -10,7 +10,7 @@ class BidRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_existing_user_bid_for_auction(self, user_id: int, auction_id: str) -> Optional[Bids]:
+    def get_existing_user_bid_for_auction(self, user_id: str, auction_id: int) -> Optional[Bids]:
         """Get existing ACTIVE bid by user for specific auction"""
         return self.db.query(Bids).filter(
             and_(
