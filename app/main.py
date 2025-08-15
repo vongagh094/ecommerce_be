@@ -13,6 +13,7 @@ from app.features.property.api.property_type_routes import router as property_ty
 from app.features.property.api.property_category_routes import router as property_category_router
 from app.features.notification.api.notification_routes import router as notification_router
 from app.api.auction import router as auction_router
+from app.api.booking import router as booking_router
 from app.core.container import Container
 from app.services.CORS import setup_cors
 from app.api.review import router as review_router
@@ -38,7 +39,8 @@ def create_app() -> FastAPI:
         "app.features.notification.api.notification_routes",
         "app.api.review",
         "app.api.auction",
-        "app.api.calendar"
+        "app.api.calendar",
+        "app.api.booking"
     ])
     """Create and configure the FastAPI application."""
     app = FastAPI(
@@ -62,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(calendar_router, prefix="/calendar", tags=["Calendar"])
     app.include_router(notification_router, prefix="/notifications", tags=["Notifications"])
     app.include_router(auction_router, prefix="/auctions", tags=["Auctions"])
+    app.include_router(booking_router, prefix="/bookings", tags=["Bookings"])
     return app
 
 app = create_app()

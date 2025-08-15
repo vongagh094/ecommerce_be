@@ -1,7 +1,7 @@
 from dependency_injector import containers, providers
 from pusher import Pusher
 from app.features.messages.core.settings import get_settings
-from app.db.sessions.session import get_db_session, get_redis, get_rabbitmq_stream
+from app.db.sessions.session import get_db_session, get_redis, get_rabbitmq_stream, get_async_db_session
 from app.db.repositories.bid_repository import BidRepository
 from app.db.repositories.auction_repository import AuctionRepository
 from app.features.messages.repositories.message_repository import MessageRepository
@@ -12,8 +12,10 @@ from app.features.property.repositories.property_image_repository import Propert
 from app.features.property.repositories.property_repository import PropertyRepository
 from app.features.wishlist.repositories.wishlist_repository import WishlistRepository
 from app.features.notification.repositories.notification_repository import NotificationRepository
+from app.db.repositories.booking_repository import BookingRepository
 from app.db.repositories.redis_repository import RedisRepository
 from app.services.auction_service import AuctionService
+from app.services.booking_service import BookingService
 from app.services.bid_service import BidService
 from app.features.messages.services.message_service import MessageService
 from app.features.messages.services.pusher_service import PusherService
@@ -51,6 +53,7 @@ class Container(containers.DeclarativeContainer):
     # Database
     db_session = providers.Resource(get_db_session)
     db_redis = providers.Resource(get_redis)
+    db_async_session = providers.Resource(get_async_db_session)
 
     # RabbitMQ
     rabbitmq_stream = providers.Resource(get_rabbitmq_stream)
@@ -125,6 +128,12 @@ class Container(containers.DeclarativeContainer):
         NotificationRepository,
         db=db_session
     )
+
+    booking_repository = providers.Factory(
+        BookingRepository,
+        db=db_async_session
+    )
+
     # Services
     bid_service = providers.Factory(
         BidService,
@@ -188,4 +197,9 @@ class Container(containers.DeclarativeContainer):
     notification_service = providers.Factory(
         NotificationService,
         notification_repository=notification_repository
+    )
+    
+    booking_service = providers.Factory(
+        BookingService,
+        booking_repository=booking_repository
     )

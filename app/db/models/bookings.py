@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, UUID, DateTime, Numeric
-from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from .basic import BasicModel
 class Booking(BasicModel):
     __tablename__ = "bookings"
@@ -21,5 +21,11 @@ class Booking(BasicModel):
     total_amount = Column(Numeric(10, 2), nullable=False)
     booking_status = Column(String(50), default="PENDING")
     payment_status = Column(String(50), default="PENDING")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now())
+    updated_at = Column(DateTime, default=lambda: datetime.now(), onupdate=lambda: datetime.now())
+
+    # relationships
+    guest = relationship("User", foreign_keys=[guest_id])
+    host = relationship("User", foreign_keys=[host_id])
+    auction = relationship("Auction", back_populates="bookings")
+    property = relationship("Property", back_populates="bookings")

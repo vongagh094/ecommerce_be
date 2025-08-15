@@ -36,3 +36,4 @@ class Auction(Base):
 
     property = relationship("Property", back_populates="auctions")
     bids = relationship("Bids", back_populates="auction")
+    bookings = relationship("Booking", back_populates="auction")
