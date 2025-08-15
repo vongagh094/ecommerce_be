@@ -13,7 +13,7 @@ class Bids(BasicModel):
     total_amount = Column(Integer, nullable=False)
     price_per_night = Column(Integer,Computed("total_amount / GREATEST(1, check_out - check_in)"), nullable=False)
     allow_partial = Column(Boolean, nullable=False)
-    partial_award = Column(Boolean, nullable=False)
+    partial_awarded = Column(Boolean, nullable=False)
     bid_time = Column(DateTime)
     status = Column(String,default="active")
 

@@ -199,8 +199,8 @@ ALTER TABLE public.bid_notifications OWNER TO postgres;
 
 CREATE TABLE public.bids (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    auction_id uuid NOT NULL,
-    user_id bigint NOT NULL,
+    auction_id bigint NOT NULL,
+    user_id uuid NOT NULL,
     check_in date NOT NULL,
     check_out date NOT NULL,
     nights integer GENERATED ALWAYS AS (GREATEST(1, (check_out - check_in))) STORED,
