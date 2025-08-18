@@ -5,7 +5,7 @@ from app.db.sessions.session import get_db_session
 from app.core.container import Container
 from dependency_injector.wiring import inject, Provide
 from app.services.auction_service import AuctionService
-from app.schemas.AuctionDTO import AuctionCreateDTO, AuctionResponseDTO
+from app.schemas.AuctionDTO import AuctionCreateDTO, AuctionResponseDTO,AuctionStatusUpdateResponse
 
 router = APIRouter()
 
@@ -36,3 +36,12 @@ def delete_auction(
 ):
     success = auction_service.delete_auction(auction_id)
     return {"message": "Auction deleted successfully"} if success else {"message": "Auction not found"}
+
+@router.put("/update/{auction_id}", response_model=AuctionStatusUpdateResponse, operation_id="updateAuction")
+@inject
+def update_auction  (
+        auction_id: str,
+        status: str,
+        auction_service: AuctionService = Depends(Provide[Container.auction_service])
+):
+    return auction_service.update_status_auction(auction_id, status)

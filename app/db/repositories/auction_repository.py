@@ -77,6 +77,22 @@ class AuctionRepository:
             logger.error(f"Database error in update_auction: {str(e)}")
             raise
 
+    def update_auction_status(self, auction_id: str, status: str) -> Optional[Auction]:
+        """Update the status of an auction."""
+        try:
+            auction = self.get_auction_by_id(auction_id)
+            if auction:
+                auction.status = status
+                self.db.commit()
+                self.db.refresh(auction)
+                return auction
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Database error in update_auction_status: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Error updating auction status: {str(e)}")
+            return None
     def delete_auction(self, auction_id: str) -> bool:
         """Delete an auction by its ID."""
         try:

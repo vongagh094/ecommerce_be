@@ -61,3 +61,21 @@ class AuctionService:
         except Exception as e:
             logger.error(f"Error deleting auction {auction_id}: {str(e)}")
             raise HTTPException(status_code=500, detail={"detail": f"Internal server error: {str(e)}"})
+
+    def update_status_auction(self, auction_id: str, status: str) -> dict:
+        try:
+            auction = self.auction_repository.get_auction_by_id(auction_id)
+            if not auction:
+                raise HTTPException(status_code=404, detail={"detail": "Auction not found"})
+            auction_updated = self.auction_repository.update_auction_status(auction_id, status)
+
+            return {
+                "auction_id": str(auction_updated.id),
+                "status": auction_updated.status,
+                "message": "Auction status updated successfully"
+            }
+        except HTTPException as e:
+            print(f"Error updating auction status: {e}")
+        return {
+            "message": "Error update auction status"
+        }
