@@ -2,9 +2,13 @@
 
 from typing import List, Tuple
 from decimal import Decimal
+from datetime import datetime, timedelta
+from typing import List, Optional
 
 from ....shared.models import Property, Amenity
 from ....shared.schemas.pagination import PaginationInfo
+from sqlalchemy import select, func, and_, Table, MetaData
+from ....shared.exceptions import NotFoundError
 from ..repository import PropertyRepository
 from ..schemas.search import PropertySearchParams, PropertyFilterParams
 from ..schemas.response import (
@@ -26,16 +30,19 @@ class PropertyService:
         
         properties, total = await self.repository.search_properties(params)
         
+        # Preload ratings in bulk
+        prop_ids = [int(p.id) for p in properties]
+        ratings_map = await self.repository.get_property_ratings(prop_ids)
+        
         # Convert to property cards
         property_cards = []
         for property in properties:
+            rating_data = ratings_map.get(int(property.id), {"average": 0.0, "count": 0})
             # Calculate rating from reviews
-            rating = await self._calculate_property_rating(property)
             rating = {
-                "average": float(rating.get("average")),
-                "count": rating.get("count")
+                "average": rating_data["average"],
+                "count": rating_data["count"]
             }
-            print(property.id)
             # Format property card
             property_card = {
                 "id": str(property.id),
@@ -51,7 +58,9 @@ class PropertyService:
                 "property_type": property.property_type,
                 "max_guests": property.max_guests,
                 "is_guest_favorite": property.is_guest_favorite,
-                "host": self._format_host(property.host)
+                "host": self._format_host(property.host),
+                "cleaning_fee": property.cleaning_fee,
+                "service_fee": self._calculate_service_fee(property.base_price)
             }
             property_cards.append(property_card)
         
@@ -73,10 +82,18 @@ class PropertyService:
         
         properties, total = await self.repository.filter_properties(params)
         
+        # Preload ratings in bulk
+        prop_ids = [int(p.id) for p in properties]
+        ratings_map = await self.repository.get_property_ratings(prop_ids)
+        
         # Convert to property cards (same logic as search)
         property_cards = []
         for property in properties:
-            rating = await self._calculate_property_rating(property)
+            rating_data = ratings_map.get(int(property.id), {"average": 0.0, "count": 0})
+            rating = {
+                "average": rating_data["average"],
+                "count": rating_data["count"]
+            }
             
             property_card = {
                 "id": property.id,
@@ -117,10 +134,18 @@ class PropertyService:
         
         properties, total = await self.repository.get_properties_by_category(category, params)
         
+        # Preload ratings in bulk
+        prop_ids = [int(p.id) for p in properties]
+        ratings_map = await self.repository.get_property_ratings(prop_ids)
+        
         # Convert to property cards (same logic as search)
         property_cards = []
         for property in properties:
-            rating = await self._calculate_property_rating(property)
+            rating_data = ratings_map.get(int(property.id), {"average": 0.0, "count": 0})
+            rating = {
+                "average": rating_data["average"],
+                "count": rating_data["count"]
+            }
             
             property_card = {
                 "id": property.id,
@@ -156,7 +181,9 @@ class PropertyService:
         """Get detailed property information."""
         
         property = await self.repository.get_property_by_id(property_id)
-        
+        rating_data = await self.repository.get_property_ratings([property_id])
+        rating = rating_data.get(property_id, {"average": 0.0, "count": 0})
+        host_review_count = await self._count_host_reviews(property.host_id)
         # Format detailed response
         return PropertyDetailsResponse(
             id=property.id,
@@ -167,6 +194,7 @@ class PropertyService:
             max_guests=property.max_guests,
             bedrooms=property.bedrooms,
             bathrooms=property.bathrooms,
+            rating=rating,
             location={
                 "address_line1": property.address_line1,
                 "city": property.city,
@@ -176,11 +204,9 @@ class PropertyService:
                 "latitude": float(property.latitude) if property.latitude else None,
                 "longitude": float(property.longitude) if property.longitude else None
             },
-            pricing={
-                "base_price": float(property.base_price),
-                "cleaning_fee": float(property.cleaning_fee),
-                "service_fee": self._calculate_service_fee(property.base_price)
-            },
+            base_price=float(property.base_price),
+            cleaning_fee=float(property.cleaning_fee),
+            service_fee=self._calculate_service_fee(property.base_price),
             policies={
                 "cancellation_policy": property.cancellation_policy,
                 "instant_book": property.instant_book,
@@ -196,7 +222,16 @@ class PropertyService:
                 self._format_location_description(desc) 
                 for desc in property.location_descriptions
             ],
-            host=self._format_host_profile(property.host),
+            host={
+                "id": property.host.id,
+                "full_name": property.host.full_name,
+                "profile_image_url": property.host.profile_image_url,
+                "is_super_host": property.host.is_super_host,
+                "host_about": property.host.host_about,
+                "host_review_count": host_review_count,
+                "host_rating_average": float(property.host.host_rating_average) if property.host.host_rating_average else 0.0,
+                "created_at": property.host.created_at.isoformat()
+            },
             reviews=await self._format_review_summary(property),
             availability_calendar=await self._get_availability_calendar(property.id),
             active_auctions=[self._format_auction(auction) for auction in property.auctions]
@@ -254,15 +289,16 @@ class PropertyService:
             "created_at": host.created_at if hasattr(host, "created_at") else None,
         }
     
-    def _format_host_profile(self, host) -> dict:
+    async def _format_host_profile(self, host) -> dict:
         """Format detailed host profile."""
+        host_review_count = await self._count_host_reviews(host.id)
         return {
             "id": host.id,
             "full_name": host.full_name,
             "profile_image_url": host.profile_image_url,
             "is_super_host": host.is_super_host,
             "host_about": host.host_about,
-            "host_review_count": host.host_review_count or 0,
+            "host_review_count": host_review_count,   
             "host_rating_average": float(host.host_rating_average) if host.host_rating_average else 0.0,
             "created_at": host.created_at.isoformat()
         }
@@ -346,3 +382,15 @@ class PropertyService:
             blocked_dates=[],
             price_calendar=[]
         )
+    
+    async def _count_host_reviews(self, host_id: int) -> int:
+        md = MetaData()
+        props = Table("properties", md, autoload_with=self.repository.db.bind)
+        reviews = Table("reviews", md, autoload_with=self.repository.db.bind)
+
+        stmt = (
+            select(func.count())
+            .select_from(reviews.join(props, reviews.c.property_id == props.c.id))
+            .where(and_(props.c.host_id == host_id, reviews.c.is_visible.is_(True)))
+        )
+        return int(self.repository.db.execute(stmt).scalar() or 0)

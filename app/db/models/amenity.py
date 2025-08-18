@@ -14,9 +14,9 @@ class Amenity(Base):
     created_at = Column(DateTime, default=lambda: datetime.now())
 
     # Relationship
-    property_amenities = relationship("PropertyAmenity", back_populates="amenity")
-    # Direct many-to-many to properties for convenience
-    properties = relationship("Property", secondary="property_amenities", back_populates="amenities")
+    property_amenities = relationship("PropertyAmenity", back_populates="amenity", cascade="all, delete-orphan")
+    # Direct many-to-many to properties for convenience (read-only)
+    properties = relationship("Property", secondary="property_amenities", back_populates="amenities", viewonly=True, overlaps="property_amenities,property,amenities")
 
 # Imports ở cuối để tránh looped
 from app.db.models.property_amenity import PropertyAmenity

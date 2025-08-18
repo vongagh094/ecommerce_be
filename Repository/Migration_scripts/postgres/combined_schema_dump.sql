@@ -362,7 +362,6 @@ CREATE TABLE IF NOT EXISTS public.users (
 	profile_image_url text,
 	verification_status varchar(50),
 	is_active boolean DEFAULT true,
-	is_admin boolean DEFAULT false,
 	is_super_host boolean DEFAULT false,
 	host_about text,
 	host_review_count integer,

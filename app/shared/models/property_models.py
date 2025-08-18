@@ -158,7 +158,6 @@ class User(Base):
     profile_image_url = Column(Text)
     verification_status = Column(String(50))
     is_active = Column(Boolean, default=True)
-    is_admin = Column(Boolean, default=False)
     is_super_host = Column(Boolean, default=False)
     host_about = Column(Text)
     host_review_count = Column(Integer)

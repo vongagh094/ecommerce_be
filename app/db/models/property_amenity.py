@@ -10,8 +10,8 @@ class PropertyAmenity(Base):
     amenity_id = Column(UUID(as_uuid=True), ForeignKey("amenities.id"), primary_key=True)
 
     # Relationships
-    property = relationship("Property", back_populates="property_amenities")
-    amenity = relationship("Amenity", back_populates="property_amenities")
+    property = relationship("Property", back_populates="property_amenities", overlaps="amenities,properties,property_amenities")
+    amenity = relationship("Amenity", back_populates="property_amenities", overlaps="amenities,properties,property_amenities")
 
 # Imports ở cuối để tránh looped
 from app.db.models.property import Property

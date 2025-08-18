@@ -39,10 +39,10 @@ class Property(Base):
     # Relationships - using string references to avoid circular imports
     host = relationship("User", back_populates="properties")
     images = relationship("PropertyImage", back_populates="property")
-    # Association table collection
-    property_amenities = relationship("PropertyAmenity", back_populates="property")
-    # Direct many-to-many to amenities for convenience
-    amenities = relationship("Amenity", secondary="property_amenities", back_populates="properties")
+    # Association table collection (write path)
+    property_amenities = relationship("PropertyAmenity", back_populates="property", cascade="all, delete-orphan")
+    # Direct many-to-many to amenities for convenience (read-only to avoid overlap writes)
+    amenities = relationship("Amenity", secondary="property_amenities", back_populates="properties", viewonly=True, overlaps="property_amenities,amenity,properties")
     conversations = relationship("Conversation", back_populates="property")
 
     # Property extras per schema

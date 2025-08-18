@@ -20,6 +20,16 @@ def get_property_service(db: Session = Depends(get_db_session)) -> PropertyServi
     repository = PropertyRepository(db)
     return PropertyService(repository)
 
+@router.get("/categories", response_model=dict)
+async def get_categories(
+    service: PropertyService = Depends(get_property_service)
+):
+    """Get list of available property categories."""
+    
+    categories = await service.get_categories()
+    print(categories)
+    return {"categories": categories.get("icons", [])}
+
 
 @router.get("/search", response_model=PropertySearchResponse)
 async def search_properties(
@@ -131,16 +141,6 @@ async def get_property_details(
 
 # Supporting endpoints
 
-@router.get("/", response_model=dict)
-async def get_categories(
-    service: PropertyService = Depends(get_property_service)
-):
-    """Get list of available property categories."""
-    
-    categories = await service.get_categories()
-    return {"categories": categories}
-
-
 @router.get("/amenities/", response_model=dict)
 async def get_amenities(
     service: PropertyService = Depends(get_property_service)
@@ -162,11 +162,4 @@ async def get_location_suggestions(
     suggestions = await service.get_location_suggestions(query, limit)
     return {"suggestions": suggestions}
 
-@router.get("/categories", response_model=dict)
-async def get_categories(
-    service: PropertyService = Depends(get_property_service)
-):
-    """Get list of available property categories."""
 
-    categories = await service.get_categories()
-    return {"categories": categories}

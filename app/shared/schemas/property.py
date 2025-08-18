@@ -54,6 +54,8 @@ class PropertyCard(BaseModel):
     max_guests: int
     is_guest_favorite: Optional[bool] = None
     host: HostProfile
+    cleaning_fee: Decimal
+    service_fee: Decimal
     
     class Config:
         from_attributes = True

@@ -126,7 +126,9 @@ class PropertyDetailsResponse(BaseModel):
     bedrooms: Optional[int] = None
     bathrooms: Optional[int] = None
     location: dict
-    pricing: dict
+    base_price: float
+    cleaning_fee: float
+    service_fee: float
     policies: dict
     images: List[dict]
     amenities: List[AmenityResponse]
@@ -134,6 +136,7 @@ class PropertyDetailsResponse(BaseModel):
     house_rules: List[HouseRuleResponse]
     location_descriptions: List[LocationDescriptionResponse]
     host: dict
+    rating: dict
     reviews: ReviewSummaryResponse
     availability_calendar: AvailabilityCalendarResponse
     active_auctions: List[AuctionInfoResponse]

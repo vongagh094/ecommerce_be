@@ -1,6 +1,5 @@
 """User model."""
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -24,11 +23,12 @@ class User(TimestampMixin, SQLModel, table=True):
     profile_image_url: Optional[str] = None
     verification_status: Optional[str] = None
     is_active: bool = Field(default=True)
-    is_admin: bool = Field(default=False)
     is_super_host: bool = Field(default=False)
     host_about: Optional[str] = None
     host_review_count: Optional[int] = None
     host_rating_average: Optional[Decimal] = None
+    phone_number: Optional[str] = None
+    gender: Optional[str] = None
     
     # Auth0 integration
     auth0_id: Optional[str] = Field(unique=True, index=True)

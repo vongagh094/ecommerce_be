@@ -810,7 +810,6 @@ CREATE TABLE public.users (
     profile_image_url text,
     verification_status character varying(50),
     is_active boolean DEFAULT true,
-    is_admin boolean DEFAULT false,
     is_super_host boolean DEFAULT false,
     host_about text,
     host_review_count integer,

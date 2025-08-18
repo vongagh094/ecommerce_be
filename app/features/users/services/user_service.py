@@ -50,4 +50,30 @@ class UserService:
 
 		self.db.commit()
 		self.db.refresh(user)
+		return user
+
+	async def update_profile(
+		self,
+		user_id: int,
+		name: Optional[str] = None,
+		picture: Optional[str] = None,
+		phone_number: Optional[str] = None,
+		gender: Optional[str] = None,
+	) -> User:
+		"""Update allowed profile fields for a user."""
+		user = self.db.query(User).filter(User.id == user_id).first()
+		if not user:
+			raise ValueError("User not found")
+
+		if name is not None:
+			user.full_name = name
+		if picture is not None:
+			user.profile_image_url = picture
+		if phone_number is not None:
+			user.phone_number = phone_number
+		if gender is not None:
+			user.gender = gender
+
+		self.db.commit()
+		self.db.refresh(user)
 		return user 
