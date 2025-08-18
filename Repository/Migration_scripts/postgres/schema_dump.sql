@@ -893,6 +893,43 @@ CREATE TABLE public.wishlist_property (
 );
 
 
+CREATE TABLE public.payment_sessions (
+  id uuid DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+  user_id bigint NOT NULL,
+  auction_id uuid NOT NULL,
+  bid_id uuid NOT NULL,
+  app_trans_id varchar(64) NOT NULL UNIQUE,
+  amount numeric(10,2) NOT NULL,
+  selected_nights jsonb NOT NULL,
+  status varchar(50) NOT NULL DEFAULT 'INITIATED',
+  idempotency_key varchar(128) UNIQUE,
+  expires_at timestamp without time zone,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE public.payment_transactions (
+  id uuid DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+  session_id uuid NOT NULL REFERENCES public.payment_sessions(id) ON DELETE CASCADE,
+  app_trans_id varchar(64) NOT NULL,
+  zp_trans_id varchar(64),
+  amount numeric(10,2) NOT NULL,
+  status varchar(50) NOT NULL DEFAULT 'PENDING',
+  paid_at timestamp without time zone,
+  raw jsonb,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_payment_transactions_app_trans_id ON public.payment_transactions (app_trans_id);
+
+-- Optional: updated_at trigger like existing tables
+CREATE TRIGGER trg_payment_sessions_upd BEFORE UPDATE ON public.payment_sessions
+FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER trg_payment_transactions_upd BEFORE UPDATE ON public.payment_transactions
+FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
 ALTER TABLE public.wishlist_property OWNER TO postgres;
 
 --

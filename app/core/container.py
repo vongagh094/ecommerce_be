@@ -1,3 +1,5 @@
+"""Dependency injection container."""
+
 from dependency_injector import containers, providers
 from pusher import Pusher
 from app.features.messages.core.settings import get_settings
@@ -22,6 +24,8 @@ from app.features.property.services.property_image_service import PropertyImageS
 from app.features.wishlist.services.wishlist_service import WishlistService
 from app.services.rabbitMQ_service import RabbitMQService
 from app.services.redis_service import RedisService
+from app.ws_integration.notifier import WebSocketNotifier
+
 
 class Container(containers.DeclarativeContainer):
     # Config
@@ -37,6 +41,9 @@ class Container(containers.DeclarativeContainer):
         ssl=True
     )
 
+    # WebSocket notifier
+    ws_notifier = providers.Singleton(WebSocketNotifier)
+
     # Pusher Service
     pusher_service = providers.Factory(
         PusherService,
@@ -49,13 +56,13 @@ class Container(containers.DeclarativeContainer):
 
     # RabbitMQ
     rabbitmq_stream = providers.Resource(get_rabbitmq_stream)
-
+    
     # Repositories
     bid_repository = providers.Factory(
         BidRepository,
         db=db_session
     )
-
+    
     auction_repository = providers.Factory(
         AuctionRepository,
         db=db_session
@@ -107,13 +114,13 @@ class Container(containers.DeclarativeContainer):
         property_amenity_repository=property_amenity_repository,
         property_image_repository=property_image_repository
     )
-
+    
     # Services
     bid_service = providers.Factory(
         BidService,
         bid_repository=bid_repository
     )
-
+    
     auction_service = providers.Factory(
         AuctionService,
         auction_repository=auction_repository
@@ -125,7 +132,7 @@ class Container(containers.DeclarativeContainer):
         conversation_repository=conversation_repository,
         pusher_service=pusher_service
     )
-
+    
     rabbitMQStream_service = providers.Factory(
         RabbitMQService,
         stream_property=rabbitmq_stream
@@ -159,3 +166,14 @@ class Container(containers.DeclarativeContainer):
         wishlist_repository=wishlist_repository,
         wishlist_property_repository=wishlist_property_repository
     )
+    
+    # Wire payment and booking services with WebSocket notifier
+    def wire_payment_service(self, service):
+        """Wire WebSocket notifier to payment service."""
+        service.set_ws_notifier(self.ws_notifier())
+        return service
+    
+    def wire_booking_service(self, service):
+        """Wire WebSocket notifier to booking service."""
+        service.set_ws_notifier(self.ws_notifier())
+        return service

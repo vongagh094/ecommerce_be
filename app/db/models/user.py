@@ -24,6 +24,9 @@ class User(Base):
     created_at = Column(DateTime, default=lambda: datetime.now())
     updated_at = Column(DateTime, default=lambda: datetime.now(), onupdate=lambda: datetime.now())
 
+    # Auth0 integration
+    auth0_id = Column(String(255), unique=True, nullable=True, index=True)
+
     # Relationships
     properties = relationship("Property", back_populates="host", foreign_keys="[Property.host_id]")
     wishlists = relationship("Wishlist", back_populates="user", foreign_keys="[Wishlist.user_id]")
