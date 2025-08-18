@@ -23,7 +23,13 @@ ON calendar_availability (property_id, date)
 WHERE auction_id IS NULL;
 
 -- Bước 3: Function xử lý cả 2 trường hợp
-DROP FUNCTION IF EXISTS insert_calendar_availability_from_bid;
+DROP FUNCTION IF EXISTS insert_calendar_availability_from_bid(p_bid_id UUID,
+    p_property_id BIGINT,
+    p_auction_id UUID,  -- Có thể NULL
+    p_check_in DATE,
+    p_check_out DATE,
+    p_price_amount NUMERIC,
+    p_is_available BOOLEAN);
 
 CREATE OR REPLACE FUNCTION insert_calendar_availability_from_bid(
     p_bid_id UUID,
@@ -41,35 +47,58 @@ DECLARE
     total_days INTEGER;
     total_nights INTEGER;
     existing_record RECORD;
+    update_count INTEGER := 0;
+    insert_count INTEGER := 0;
+    skip_count INTEGER := 0;
 BEGIN
     total_days := (p_check_out - p_check_in) + 1;
     total_nights := p_check_out - p_check_in;
+    IF total_nights < 1 THEN
+        total_nights := 1;
+    end if;
     price_per_day := ROUND((p_price_amount * total_nights) / total_days, 2);
-    
+
     loop_date := p_check_in;
-    
+
     WHILE loop_date <= p_check_out LOOP
-        
+
         IF p_auction_id IS NOT NULL THEN
             -- TRƯỜNG HỢP MỚI: có auction_id
-            -- Check conflict manually vì partial index phức tạp
-            SELECT id INTO existing_record 
-            FROM calendar_availability 
-            WHERE property_id = p_property_id 
-            AND auction_id = p_auction_id 
+            SELECT
+                id,
+                price_amount as current_price,
+                bid_id as current_bid_id,
+                created_at
+            INTO existing_record
+            FROM calendar_availability
+            WHERE property_id = p_property_id
+            AND auction_id = p_auction_id
             AND date = loop_date;
-            
+
             IF FOUND THEN
-                -- Update existing record
-                UPDATE calendar_availability 
-                SET 
-                    is_available = p_is_available,
-                    bid_id = p_bid_id,
-                    price_amount = price_per_day,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE property_id = p_property_id 
-                AND auction_id = p_auction_id 
-                AND date = loop_date;
+                -- 🎯 SO SÁNH GIÁ: Chỉ update nếu bid mới cao hơn hoặc bằng
+                IF price_per_day >= COALESCE(existing_record.current_price, 0) THEN
+                    UPDATE calendar_availability
+                    SET
+                        is_available = p_is_available,
+                        bid_id = p_bid_id,
+                        price_amount = price_per_day,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE property_id = p_property_id
+                    AND auction_id = p_auction_id
+                    AND date = loop_date;
+
+                    update_count := update_count + 1;
+
+                    RAISE NOTICE 'Updated % - New price: %, Old price: %, Bid: %',
+                                 loop_date, price_per_day, existing_record.current_price, p_bid_id;
+                ELSE
+                    -- Bid thấp hơn - không update
+                    skip_count := skip_count + 1;
+
+                    RAISE NOTICE 'Skipped % - New price: % < Old price: %, keeping bid: %',
+                                 loop_date, price_per_day, existing_record.current_price, existing_record.current_bid_id;
+                END IF;
             ELSE
                 -- Insert new record
                 INSERT INTO calendar_availability (
@@ -80,27 +109,42 @@ BEGIN
                     p_property_id, p_auction_id, loop_date, p_is_available, p_bid_id, price_per_day,
                     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                 );
+
+                insert_count := insert_count + 1;
+
+                RAISE NOTICE 'Inserted % - Price: %, Bid: %',
+                             loop_date, price_per_day, p_bid_id;
             END IF;
-            
+
         ELSE
             -- TRƯỜNG HỢP CŨ: auction_id = NULL (legacy data)
-            SELECT id INTO existing_record 
-            FROM calendar_availability 
-            WHERE property_id = p_property_id 
-            AND auction_id IS NULL 
+            SELECT
+                id,
+                price_amount as current_price,
+                bid_id as current_bid_id
+            INTO existing_record
+            FROM calendar_availability
+            WHERE property_id = p_property_id
+            AND auction_id IS NULL
             AND date = loop_date;
-            
+
             IF FOUND THEN
-                -- Update existing legacy record
-                UPDATE calendar_availability 
-                SET 
-                    is_available = p_is_available,
-                    bid_id = p_bid_id,
-                    price_amount = price_per_day,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE property_id = p_property_id 
-                AND auction_id IS NULL 
-                AND date = loop_date;
+                -- 🎯 SO SÁNH GIÁ cho legacy data
+                IF price_per_day >= COALESCE(existing_record.current_price, 0) THEN
+                    UPDATE calendar_availability
+                    SET
+                        is_available = p_is_available,
+                        bid_id = p_bid_id,
+                        price_amount = price_per_day,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE property_id = p_property_id
+                    AND auction_id IS NULL
+                    AND date = loop_date;
+
+                    update_count := update_count + 1;
+                ELSE
+                    skip_count := skip_count + 1;
+                END IF;
             ELSE
                 -- Insert new legacy record
                 INSERT INTO calendar_availability (
@@ -111,14 +155,21 @@ BEGIN
                     p_property_id, NULL, loop_date, p_is_available, p_bid_id, price_per_day,
                     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                 );
+
+                insert_count := insert_count + 1;
             END IF;
         END IF;
 
         loop_date := loop_date + INTERVAL '1 day';
     END LOOP;
-    
-    RAISE NOTICE 'Processed % days for property %, auction %', 
-                 total_days, p_property_id, COALESCE(p_auction_id::text, 'NULL');
+
+    -- 📊 SUMMARY LOG
+    RAISE NOTICE '=== SUMMARY for Property %, Auction % ===',
+                 p_property_id, COALESCE(p_auction_id::text, 'NULL');
+    RAISE NOTICE 'Inserted: % days, Updated: % days, Skipped (lower price): % days',
+                 insert_count, update_count, skip_count;
+    RAISE NOTICE 'Total processed: % days, Price per day: %',
+                 total_days, price_per_day;
 END;
 $$ LANGUAGE plpgsql;
 

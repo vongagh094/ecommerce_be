@@ -1,4 +1,7 @@
-DROP FUNCTION IF EXISTS get_calendar_optimized_direct;
+DROP FUNCTION IF EXISTS get_calendar_optimized_direct(    p_property_id BIGINT,
+    p_auction_id uuid,
+    p_year INTEGER,
+    p_month INTEGER);
 
 CREATE OR REPLACE FUNCTION get_calendar_optimized_direct(
     p_property_id BIGINT,
