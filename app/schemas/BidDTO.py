@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 from datetime import datetime
 class BidsDTO(BaseModel):
-    user_id: str
+    user_id: int
     property_id: int
-    auction_id: int
+    auction_id: str
     bid_amount: int
     bid_time: str
     check_in: str

@@ -5,7 +5,8 @@ from sqlalchemy import func
 
 class CalendarAvailability(Base):
     __tablename__ = "calendar_availability"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True,nullable=False,autoincrement=True)
+    auction_id = Column(String, ForeignKey("auctions.id"), nullable=False)
     property_id = Column(Integer, ForeignKey("properties.id"), primary_key=True)
     date = Column(Date, primary_key=True)
     is_available = Column(Boolean)

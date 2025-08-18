@@ -33,7 +33,7 @@ INSERT INTO auctions (
 ) VALUES (
     '22222222-2222-2222-2222-222222222222', 11798, '2025-08-18', '2025-08-25',
     3, 7, 70.00, 85.00, 5.00, 70.00,
-    '2025-08-12 09:00:00', '2025-08-17 20:00:00', 'HIGHEST_PER_NIGHT', 'ACTIVE', NULL, 5
+    '2025-08-12 09:00:00', '2025-08-17 20:00:00', 'HIGHEST_PER_NIGHT', 'COMPLETE', NULL, 5
 );
 
 -- Auction 3: Sydney Rooftop Apartment (Property ID: 15253)
@@ -78,6 +78,33 @@ INSERT INTO auctions (
     '66666666-6666-6666-6666-666666666666', 3109, '2025-09-10', '2025-09-15',
     1, 5, 55.00, NULL, 5.00, 55.00,
     '2025-09-05 12:00:00', '2025-09-09 18:00:00', 'HIGHEST_PER_NIGHT', 'PENDING', NULL, 0
+);
+INSERT INTO auctions (
+    id, property_id, start_date, end_date, min_nights, max_nights,
+    starting_price, current_highest_bid, bid_increment, minimum_bid,
+    auction_start_time, auction_end_time, objective, status, winner_user_id, total_bids
+) VALUES (
+    '77777777-7777-7777-7777-777777777777', 11798, '2025-09-1', '2025-09-15',
+    1, 5, 55.00, NULL, 5.00, 55.00,
+    '2025-08-25 12:00:00', '2025-08-29 18:00:00', 'HIGHEST_PER_NIGHT', 'PENDING', NULL, 0
+);
+INSERT INTO auctions (
+    id, property_id, start_date, end_date, min_nights, max_nights,
+    starting_price, current_highest_bid, bid_increment, minimum_bid,
+    auction_start_time, auction_end_time, objective, status, winner_user_id, total_bids
+) VALUES (
+    '88888888-8888-8888-8888-888888888888', 11798, '2025-08-25', '2025-08-31',
+    1, 5, 55.00, NULL, 5.00, 55.00,
+    '2025-08-18 07:00:00', '2025-08-24 18:00:00', 'HIGHEST_PER_NIGHT', 'ACTIVE', NULL, 0
+);
+INSERT INTO auctions (
+    id, property_id, start_date, end_date, min_nights, max_nights,
+    starting_price, current_highest_bid, bid_increment, minimum_bid,
+    auction_start_time, auction_end_time, objective, status, winner_user_id, total_bids
+) VALUES (
+    '99999999-9999-9999-9999-999999999999', 11798, '2025-09-16', '2025-09-30',
+    1, 5, 55.00, NULL, 5.00, 55.00,
+    '2025-08-18 07:00:00', '2025-08-18 12:50:00', 'HIGHEST_PER_NIGHT', 'ACTIVE', NULL, 0
 );
 
 -- ===================================================================

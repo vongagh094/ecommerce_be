@@ -10,13 +10,13 @@ class BidRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_existing_user_bid_for_auction(self, user_id: str, auction_id: int) -> Optional[Bids]:
+    def get_existing_user_bid_for_auction(self, user_id: int, auction_id: str) -> Optional[Bids]:
         """Get existing ACTIVE bid by user for specific auction"""
         return self.db.query(Bids).filter(
             and_(
                 Bids.user_id == user_id,
                 Bids.auction_id == auction_id,
-                Bids.status == 'active'  # Model uses lowercase 'active'
+                Bids.status == 'ACTIVE'  # Model uses lowercase 'active'
             )
         ).first()
 
@@ -31,7 +31,7 @@ class BidRepository:
             allow_partial=bids_dto.allow_partial,
             partial_awarded=bids_dto.partial_awarded,
             bid_time=datetime.fromisoformat(bids_dto.bid_time),  # Convert to datetime
-            status="active"
+            status="ACTIVE"
             # nights and price_per_night will be computed automatically by DB
         )
 

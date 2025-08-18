@@ -48,3 +48,7 @@ class AuctionResponseDTO(BaseModel):
 
     class Config:
         from_attributes = True
+class AuctionStatusUpdateResponse(BaseModel):
+    auction_id: str
+    status: str
+    message: str

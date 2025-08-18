@@ -16,6 +16,7 @@ class CalendarService:
     def get_property_calendar(
             self,
             property_id: int,
+            auction_id:str,
             year: int,
             month: int
     ) -> PropertyCalendarResponseData:
@@ -29,7 +30,7 @@ class CalendarService:
 
             # Get base calendar data
             calendar_data = self.calendar_repository.get_calendar_data(
-                property_id, year, month
+                property_id,auction_id,year, month
             )
 
             # Convert to Pydantic models

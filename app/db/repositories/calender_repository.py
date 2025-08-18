@@ -15,6 +15,7 @@ class CalendarRepository:
     def get_calendar_data(
             self,
             property_id: int,
+            auction_id: str,
             year: int,
             month: int
     ) -> List[Dict[str, Any]]:
@@ -22,10 +23,11 @@ class CalendarRepository:
         Main method: Get calendar data sử dụng optimized direct function
         """
         try:
-            query = text("SELECT * FROM get_calendar_optimized_direct(:property_id, :year, :month)")
+            query = text("SELECT * FROM get_calendar_optimized_direct(:property_id, :auction_id,:year, :month)")
 
             result = self.db.execute(query, {
                 'property_id': property_id,
+                'auction_id': auction_id,
                 'year': year,
                 'month': month
             })

@@ -8,12 +8,13 @@ router = APIRouter()
 @inject
 async def get_calendar(
     property_id: int,
+    auction_id:str,
     year: int,
     month: int,
     calendar_service: CalendarService = Depends(Provide[Container.calendar_service])
 ):
     return calendar_service.get_property_calendar(
-        property_id, year, month
+        property_id, auction_id ,year, month
     )
 
 @router.get("/auction/{auction_id}/user/{user_id}/win-loss-status")
