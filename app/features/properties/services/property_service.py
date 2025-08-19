@@ -96,7 +96,7 @@ class PropertyService:
             }
             
             property_card = {
-                "id": property.id,
+                "id": str(property.id),
                 "title": property.title,
                 "images": [self._format_image(img) for img in property.images],
                 "base_price": property.base_price,
@@ -109,7 +109,9 @@ class PropertyService:
                 "property_type": property.property_type,
                 "max_guests": property.max_guests,
                 "is_guest_favorite": property.is_guest_favorite,
-                "host": self._format_host(property.host)
+                "host": self._format_host(property.host),
+                "cleaning_fee": property.cleaning_fee,
+                "service_fee": self._calculate_service_fee(property.base_price)
             }
             property_cards.append(property_card)
         
@@ -148,7 +150,7 @@ class PropertyService:
             }
             
             property_card = {
-                "id": property.id,
+                "id": str(property.id),
                 "title": property.title,
                 "images": [self._format_image(img) for img in property.images],
                 "base_price": property.base_price,
@@ -161,7 +163,9 @@ class PropertyService:
                 "property_type": property.property_type,
                 "max_guests": property.max_guests,
                 "is_guest_favorite": property.is_guest_favorite,
-                "host": self._format_host(property.host)
+                "host": self._format_host(property.host),
+                "cleaning_fee": property.cleaning_fee,
+                "service_fee": self._calculate_service_fee(property.base_price)
             }
             property_cards.append(property_card)
         
@@ -237,7 +241,7 @@ class PropertyService:
             active_auctions=[self._format_auction(auction) for auction in property.auctions]
         )
     
-    async def get_categories(self) -> List[dict]:
+    async def get_categories(self) -> List[str]:
         """Get list of available property categories."""
         return await self.repository.get_available_categories()
     

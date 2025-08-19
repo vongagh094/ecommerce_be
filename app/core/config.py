@@ -36,7 +36,8 @@ class ZaloPayConfig(BaseModel):
 	key2: str = Field(default="")
 	create_url: str = Field(default="https://sb-openapi.zalopay.vn/v2/create")
 	query_url: str = Field(default="https://sb-openapi.zalopay.vn/v2/query")
-	callback_path: str = Field(default="/api/v1/payment/zalopay/callback")
+	callback_path: str = Field(default="https://808d12e6347a.ngrok-free.app")
+	redirect_url: str = Field(default="https://808d12e6347a.ngrok-free.app")
 
 class AppConfig(BaseModel):
 	title: str = Field(default="Ecommerce Backend API")
@@ -47,6 +48,7 @@ class AppConfig(BaseModel):
 	port: int = Field(default=8000, ge=1, le=65535)
 	reload: bool = Field(default=True)
 	allowed_origins: List[str] = Field(default=["http://localhost:3000", "http://127.0.0.1:3000"])
+	public_base_url: str = Field(default="")
 
 class Settings(BaseModel):
 	postgres_db: PostgresConfig = PostgresConfig()
@@ -103,14 +105,16 @@ def get_settings() -> Settings:
 			key2=os.getenv("ZALOPAY_KEY2", ""),
 			create_url=os.getenv("ZALOPAY_CREATE_URL", "https://sb-openapi.zalopay.vn/v2/create"),
 			query_url=os.getenv("ZALOPAY_QUERY_URL", "https://sb-openapi.zalopay.vn/v2/query"),
-			callback_path=os.getenv("ZALOPAY_CALLBACK_PATH", "/api/v1/payment/zalopay/callback")
+			callback_path=os.getenv("ZALOPAY_CALLBACK_PATH", "/api/v1/payment/zalopay/callback"),
+			redirect_url=os.getenv("ZALOPAY_REDIRECT_URL", "https://808d12e6347a.ngrok-free.app")
 		),
 		app=AppConfig(
 			version=os.getenv("APP__VERSION", "1.0.0"),
 			debug=os.getenv("APP__DEBUG", "false").lower() in ("true", "1", "yes"),
 			host=os.getenv("APP__HOST", "127.0.0.1"),
 			port=int(os.getenv("APP__PORT", 8000)),
-			allowed_origins=origins_list
+			allowed_origins=origins_list,
+			public_base_url=os.getenv("PUBLIC_BASE_URL", "")
 		)
 	)
 

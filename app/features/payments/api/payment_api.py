@@ -13,23 +13,25 @@ router = APIRouter(prefix="/payment")
 container = Container()
 
 def get_payment_service(db: Session = Depends(get_db_session)) -> PaymentService:
-    service = PaymentService(db)
-    return container.wire_payment_service(service)
+	service = PaymentService(db)
+	# Inject WebSocket notifier directly
+	service.set_ws_notifier(container.ws_notifier())
+	return service
 
 @router.get("/sessions/{session_id}")
 async def get_payment_session(
-    session_id: str = Path(...),
-    user_id: int = Depends(require_auth),
-    payment_service: PaymentService = Depends(get_payment_service)
+	session_id: str = Path(...),
+	user=Depends(require_auth),
+	payment_service: PaymentService = Depends(get_payment_service)
 ):
-    """Get payment session by ID."""
-    return await payment_service.get_payment_session(user_id, session_id)
+	"""Get payment session by ID."""
+	return await payment_service.get_payment_session(user.id, session_id)
 
 @router.get("/transactions/{transaction_id}")
 async def get_payment_transaction(
-    transaction_id: str = Path(...),
-    user_id: int = Depends(require_auth),
-    payment_service: PaymentService = Depends(get_payment_service)
+	transaction_id: str = Path(...),
+	user=Depends(require_auth),
+	payment_service: PaymentService = Depends(get_payment_service)
 ):
-    """Get payment transaction by ID."""
-    return await payment_service.get_payment_transaction(user_id, transaction_id) 
+	"""Get payment transaction by ID."""
+	return await payment_service.get_payment_transaction(user.id, transaction_id) 

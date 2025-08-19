@@ -1,6 +1,6 @@
 from enum import Enum
 from .basic import BasicModel
-from sqlalchemy import Column, DateTime, Integer, String, Boolean,ForeignKey, Enum as SqlEnum
+from sqlalchemy import Column, DateTime, Integer, String, Boolean,ForeignKey, Enum as SqlEnum, BigInteger
 from sqlalchemy.orm import relationship
 
 class Auction_object(Enum):
@@ -10,7 +10,7 @@ class Auction_object(Enum):
 class AuctionDB(BasicModel):
     __tablename__ = "auctions"
 
-    property_id = Column(Integer, nullable=False)
+    property_id = Column(BigInteger, nullable=False)
     start_date = Column(DateTime)
     end_date = Column(DateTime)
     min_nights = Column(Integer)

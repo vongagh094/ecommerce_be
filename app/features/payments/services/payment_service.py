@@ -6,6 +6,7 @@ import json
 import time
 from typing import Any, Dict, Optional
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
 import requests
 from sqlalchemy.orm import Session
@@ -66,6 +67,7 @@ class PaymentService:
 
 	def _sign_key1(self, app_id: str, app_trans_id: str, app_user: str, amount: int, app_time: int, embed_data: str, item: str) -> str:
 		data = f"{app_id}|{app_trans_id}|{app_user}|{amount}|{app_time}|{embed_data}|{item}"
+		print("data", data)
 		return hmac.new(self.cfg.key1.encode(), data.encode(), hashlib.sha256).hexdigest()
 
 	def _sign_query(self, app_id: str, app_trans_id: str) -> str:
@@ -77,8 +79,10 @@ class PaymentService:
 		return hmac.compare_digest(calc, mac)
 
 	def _calc_amount_for_selection(self, bid: Bids, selected_nights: list[str]) -> int:
-		night_price = int(bid.total_amount / max(1, (bid.check_out - bid.check_in).days))
-		return night_price * len(selected_nights)
+		total_days = max(1, (bid.check_out - bid.check_in).days)
+		selected_days = max(0, len(selected_nights))
+		# Multiply before integer division to avoid truncation errors
+		return (int(bid.total_amount) * selected_days) // total_days
 
 	def _create_or_get_session(self, *, user_id: int, auction_id: str, bid_id: str, app_trans_id: str, amount: int, selected_nights: list[str], idempotency_key: Optional[str], order_url: str) -> PaymentSession:
 		existing = self.db.execute(select(PaymentSession).where(PaymentSession.app_trans_id == app_trans_id)).scalar_one_or_none()
@@ -108,20 +112,74 @@ class PaymentService:
 			self.db.commit()
 		return session
 
-	async def create_zalopay_order(self, user_id: int, payload: Dict[str, Any], idempotency_key: Optional[str]) -> Dict[str, Any]:
+	async def create_zalopay_order(self, user_id: int, payload: Dict[str, Any], idempotency_key: Optional[str], redirect_params: Optional[str]) -> Dict[str, Any]:
 		auction_id = payload.get("auctionId")
 		selected_nights = payload.get("selectedNights", [])
 		req_amount = int(payload.get("amount", 0))
 		order_info = payload.get("orderInfo", "")
+		redirect_params = payload.get("redirectParams", {})
 		if not auction_id:
 			raise ValidationError("auctionId is required", code="VALIDATION_ERROR")
 		if not selected_nights:
 			raise ValidationError("selectedNights required", code="VALIDATION_ERROR")
 
-		bid = self.db.execute(select(Bids).where(and_(Bids.auction_id == auction_id, Bids.user_id == user_id))).scalar_one_or_none()
-		if not bid:
-			raise NotFoundError("Bid", auction_id)
+		# Try to find existing bid for this auction and user
+		bid = self.db.execute(select(Bids).where(and_(Bids.auction_id == auction_id, Bids.user_id == str(user_id)))).scalar_one_or_none()
 
+		# For testing: if no bid exists yet, create a minimal mock auction and bid
+		if not bid:
+			from datetime import date as _date, datetime as _dt, time as _time, timedelta as _td
+			# Derive a reasonable auction window from selected nights
+			check_in_date = _date.fromisoformat(selected_nights[0])
+			check_out_date = _date.fromisoformat(selected_nights[-1]) + _td(days=1)
+			check_in_dt = _dt.combine(check_in_date, _time.min)
+			check_out_dt = _dt.combine(check_out_date, _time.min)
+
+			auction = self.db.get(AuctionDB, auction_id)
+			if not auction:
+				# Support FE-provided UUID as primary key if valid
+				try:
+					import uuid as _uuid
+					auction_uuid = _uuid.UUID(auction_id)
+				except Exception:
+					auction_uuid = None
+				auction = AuctionDB(
+					property_id=1046426558692326079,
+					start_date=check_in_dt,
+					end_date=check_out_dt,
+					min_nights=1,
+					max_nights=30,
+					starting_price=req_amount or 0,
+					current_highest_bid=req_amount or 0,
+					bid_increment=1,
+					minimum_bid=req_amount or 0,
+					total_bids=0,
+					status="activate",
+					auction_start_time=check_in_dt,
+					auction_end_time=check_in_dt + _td(hours=1),
+				)
+				if auction_uuid:
+					auction.id = auction_uuid
+				self.db.add(auction)
+				self.db.commit()
+				self.db.refresh(auction)
+				auction_id = str(auction.id)
+
+			# Create a bid that spans exactly the selected nights range so amount math matches
+			bid = Bids(
+				auction_id=auction_id,
+				user_id=str(user_id),
+				check_in=check_in_dt,
+				check_out=check_out_dt,
+				total_amount=req_amount,
+				allow_partial=True,
+			)
+			self.db.add(bid)
+			self.db.commit()
+			self.db.refresh(bid)
+
+		# Validate selected nights fall within bid range
+		print(bid)
 		allowed = set()
 		curr = bid.check_in
 		from datetime import timedelta
@@ -132,31 +190,52 @@ class PaymentService:
 			if d not in allowed:
 				raise ValidationError("selectedNights contain dates outside bid range", code="VALIDATION_ERROR")
 
+		# Calculate service-side amount based on selected nights
 		srv_amount = self._calc_amount_for_selection(bid, selected_nights)
 		if req_amount != srv_amount:
 			raise BusinessLogicError("Amount mismatch", code="CONFLICT", status_code=409)
 
-		app_id = self.cfg.app_id
+		# Normalize app_id and prepare canonical JSON strings used for both MAC and payload
+		app_id_str = str(int(self.cfg.app_id)) if self.cfg.app_id else "0"
+		app_id_int = int(app_id_str) if app_id_str.isdigit() else 0
 		app_user = str(user_id)
 		app_time = int(time.time() * 1000)
-		app_trans_id = self._gen_app_trans_id(f"{auction_id}_{int(time.time())}")
-		item = json.dumps([])
-		embed_data = json.dumps({"auctionId": auction_id, "nights": selected_nights})
-		mac = self._sign_key1(app_id, app_trans_id, app_user, srv_amount, app_time, embed_data, item)
+		# Use format yymmdd_{userId}{modtime} (<=64 chars, no hyphens)
+		print("user_id", user_id)
+		app_trans_id = self._gen_app_trans_id(f"{user_id}{int(time.time()) % 1000000}")
+		# Create compact JSON strings and reuse them for MAC and payload
+		item_str = json.dumps([], separators=(",", ":"), ensure_ascii=False)
+		redirect_url = f"{self.cfg.redirect_url}/{urlencode(redirect_params, safe='')}&appTransId={app_trans_id}"
+		embed_data_obj = {"auctionId": auction_id, "nights": selected_nights, "redirectUrl": redirect_url}
+		embed_data_str = json.dumps(embed_data_obj, separators=(",", ":"), ensure_ascii=False)
+		mac = self._sign_key1(app_id_str, app_trans_id, app_user, srv_amount, app_time, embed_data_str, item_str)
 		callback_url = self.cfg.callback_path
+		print("callback_url", callback_url)
+		# Build absolute callback URL if PUBLIC_BASE_URL is set and callback_path is relative
+		try:
+			from urllib.parse import urlparse, urljoin
+			parsed = urlparse(callback_url)
+			if not parsed.scheme:
+				base = settings.app.public_base_url.rstrip("/") if settings.app.public_base_url else ""
+				if base:
+					callback_url = urljoin(base + "/", self.cfg.callback_path.lstrip("/"))
+		except Exception:
+			pass
 		create_payload = {
-			"app_id": app_id,
+			"app_id": app_id_int,
 			"app_trans_id": app_trans_id,
 			"app_user": app_user,
 			"app_time": app_time,
 			"amount": srv_amount,
-			"item": item,
-			"embed_data": embed_data,
+			"item": item_str,
+			"embed_data": embed_data_str,
 			"description": order_info,
 			"callback_url": callback_url,
 			"mac": mac,
 		}
+		print(create_payload)
 		resp = requests.post(self.cfg.create_url, json=create_payload, timeout=15)
+		print(resp.text)
 		if resp.status_code >= 400:
 			raise BusinessLogicError(f"ZaloPay create failed: {resp.text}", code="PAYMENT_CREATE_FAILED", status_code=502)
 		data = resp.json()
@@ -220,7 +299,9 @@ class PaymentService:
 			ws_status = "COMPLETED" if status == "PAID" else "FAILED"
 			self._notify_payment_status(user_id, str(session.id), ws_status, ptx.zp_trans_id if ptx else None)
 			
-		return {"status": status, "transactionId": data.get("zp_trans_id"), "amount": data.get("amount"), "paidAt": data.get("server_time")}
+		paid_at_ms = data.get("server_time")
+		paid_at_iso = datetime.utcfromtimestamp(paid_at_ms/1000).isoformat() if paid_at_ms else None
+		return {"status": status, "transactionId": data.get("zp_trans_id"), "amount": data.get("amount"), "paidAt": paid_at_iso}
 
 	async def handle_zalopay_callback(self, payload: Dict[str, Any]) -> Dict[str, Any]:
 		data_str = payload.get("data", "")

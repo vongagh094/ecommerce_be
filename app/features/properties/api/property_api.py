@@ -27,8 +27,7 @@ async def get_categories(
     """Get list of available property categories."""
     
     categories = await service.get_categories()
-    print(categories)
-    return {"categories": categories.get("icons", [])}
+    return {"categories": categories}
 
 
 @router.get("/search", response_model=PropertySearchResponse)
@@ -62,17 +61,6 @@ async def filter_properties(
     check_in: Optional[str] = Query(None, description="Check-in date (YYYY-MM-DD)"),
     check_out: Optional[str] = Query(None, description="Check-out date (YYYY-MM-DD)"),
     guests: Optional[int] = Query(None, ge=1, description="Number of guests"),
-    
-    # Advanced filter parameters
-    min_price: Optional[float] = Query(None, ge=0, description="Minimum price"),
-    max_price: Optional[float] = Query(None, ge=0, description="Maximum price"),
-    property_types: Optional[List[str]] = Query(None, description="Property types"),
-    amenities: Optional[List[str]] = Query(None, description="Amenity IDs"),
-    cancellation_policy: Optional[List[str]] = Query(None, description="Cancellation policies"),
-    instant_book: Optional[bool] = Query(None, description="Instant book only"),
-    min_rating: Optional[float] = Query(None, ge=0, le=5, description="Minimum rating"),
-    bedrooms: Optional[int] = Query(None, ge=0, description="Number of bedrooms"),
-    bathrooms: Optional[int] = Query(None, ge=0, description="Number of bathrooms"),
     categories: Optional[List[str]] = Query(None, description="Property categories"),
     
     pagination: PaginationParams = Depends(get_pagination_params),
@@ -85,15 +73,6 @@ async def filter_properties(
         check_in=check_in,
         check_out=check_out,
         guests=guests,
-        min_price=min_price,
-        max_price=max_price,
-        property_types=property_types,
-        amenities=amenities,
-        cancellation_policy=cancellation_policy,
-        instant_book=instant_book,
-        min_rating=min_rating,
-        bedrooms=bedrooms,
-        bathrooms=bathrooms,
         categories=categories,
         page=pagination.page,
         limit=pagination.limit

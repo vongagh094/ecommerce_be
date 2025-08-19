@@ -6,8 +6,8 @@ from .base import AppException
 class BusinessLogicError(AppException):
     """Raised when business logic validation fails."""
     
-    def __init__(self, message: str):
-        super().__init__(message, "BUSINESS_LOGIC_ERROR", 400)
+    def __init__(self, message: str, code: str = "BUSINESS_LOGIC_ERROR", status_code: int = 400):
+        super().__init__(message, code, status_code)
 
 
 class DuplicateError(AppException):

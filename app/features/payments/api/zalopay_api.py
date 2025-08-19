@@ -13,35 +13,36 @@ router = APIRouter(prefix="/payment/zalopay")
 container = Container()
 
 def get_payment_service(db: Session = Depends(get_db_session)) -> PaymentService:
-    service = PaymentService(db)
-    return container.wire_payment_service(service)
+	service = PaymentService(db)
+	service.set_ws_notifier(container.ws_notifier())
+	return service
 
 @router.post("/create")
 async def create_zalopay_order(
-    payload: dict = Body(...),
-    idempotency_key: str = Header(None),
-    user_id: int = Depends(require_auth),
-    payment_service: PaymentService = Depends(get_payment_service)
+	payload: dict = Body(...),
+	idempotency_key: str = Header(None),
+	user=Depends(require_auth),
+	payment_service: PaymentService = Depends(get_payment_service),
 ):
-    """Create a ZaloPay order."""
-    return await payment_service.create_zalopay_order(user_id, payload, idempotency_key)
+	"""Create a ZaloPay order."""
+	return await payment_service.create_zalopay_order(user.id, payload, idempotency_key)
 
 @router.get("/status/{app_trans_id}")
 async def get_zalopay_status(
-    app_trans_id: str = Path(...),
-    user_id: int = Depends(require_auth),
-    payment_service: PaymentService = Depends(get_payment_service)
+	app_trans_id: str = Path(...),
+	user=Depends(require_auth),
+	payment_service: PaymentService = Depends(get_payment_service)
 ):
-    """Get ZaloPay payment status."""
-    return await payment_service.get_zalopay_status(user_id, app_trans_id)
+	"""Get ZaloPay payment status."""
+	return await payment_service.get_zalopay_status(user.id, app_trans_id)
 
 @router.post("/callback")
 async def zalopay_callback(
-    payload: dict = Body(...),
-    payment_service: PaymentService = Depends(get_payment_service)
+	payload: dict = Body(...),
+	payment_service: PaymentService = Depends(get_payment_service)
 ):
-    """ZaloPay callback endpoint (no auth required)."""
-    return await payment_service.handle_zalopay_callback(payload)
+	"""ZaloPay callback endpoint (no auth required)."""
+	return await payment_service.handle_zalopay_callback(payload)
 
 
 @router.get("/sessions/{session_id}")
