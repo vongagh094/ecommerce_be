@@ -112,12 +112,13 @@ class PaymentService:
 			self.db.commit()
 		return session
 
-	async def create_zalopay_order(self, user_id: int, payload: Dict[str, Any], idempotency_key: Optional[str], redirect_params: Optional[str]) -> Dict[str, Any]:
+	async def create_zalopay_order(self, user_id: int, payload: Dict[str, Any], idempotency_key: Optional[str]) -> Dict[str, Any]:
+		print(payload)
 		auction_id = payload.get("auctionId")
 		selected_nights = payload.get("selectedNights", [])
 		req_amount = int(payload.get("amount", 0))
 		order_info = payload.get("orderInfo", "")
-		redirect_params = payload.get("redirectParams", {})
+		redirect_params = payload.get("redirectParams", "")
 		if not auction_id:
 			raise ValidationError("auctionId is required", code="VALIDATION_ERROR")
 		if not selected_nights:
@@ -205,7 +206,7 @@ class PaymentService:
 		app_trans_id = self._gen_app_trans_id(f"{user_id}{int(time.time()) % 1000000}")
 		# Create compact JSON strings and reuse them for MAC and payload
 		item_str = json.dumps([], separators=(",", ":"), ensure_ascii=False)
-		redirect_url = f"{self.cfg.redirect_url}/{urlencode(redirect_params, safe='')}&appTransId={app_trans_id}"
+		redirect_url = f"{self.cfg.redirect_url}?{redirect_params}"
 		embed_data_obj = {"auctionId": auction_id, "nights": selected_nights, "redirectUrl": redirect_url}
 		embed_data_str = json.dumps(embed_data_obj, separators=(",", ":"), ensure_ascii=False)
 		mac = self._sign_key1(app_id_str, app_trans_id, app_user, srv_amount, app_time, embed_data_str, item_str)
