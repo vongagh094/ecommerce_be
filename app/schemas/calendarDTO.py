@@ -16,6 +16,7 @@ class PropertyCalendarResponseData(BaseModel):
     month: int
     year: int
     days: list[DayData]
-class CalendarRequestDTO(BaseModel):
-    property_id: int
-    auction_id: uuid.UUID
+class MessageResponseDTO(BaseModel):
+    success: bool
+    message: str
+    Details: dict

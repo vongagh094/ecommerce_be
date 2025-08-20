@@ -30,6 +30,8 @@ from app.db.repositories.review_repository import ReviewRepository
 from app.services.review_service import ReviewService
 from app.db.repositories.calender_repository import CalendarRepository
 from app.services.calendar_service import CalendarService
+from app.services.winlose_service import WinLoseService
+from app.services.winner_service import WinnerService
 class Container(containers.DeclarativeContainer):
     # Config
     config = providers.Singleton(get_settings)
@@ -192,7 +194,8 @@ class Container(containers.DeclarativeContainer):
     )
     calendar_service = providers.Factory(
         CalendarService,
-        calendar_repository=calendar_repository
+        calendar_repository=calendar_repository,
+        bid_repository=bid_repository
     )
     notification_service = providers.Factory(
         NotificationService,
@@ -202,4 +205,14 @@ class Container(containers.DeclarativeContainer):
     booking_service = providers.Factory(
         BookingService,
         booking_repository=booking_repository
+    )
+    winlose_service = providers.Factory(
+        WinLoseService,
+        auction_repository=auction_repository,
+        bid_repository=bid_repository,
+    )
+    winner_service = providers.Factory(
+        WinnerService,
+        bid_repository=bid_repository,
+        auction_repository=auction_repository
     )

@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -86,12 +87,13 @@ class CalendarRepository:
             )
         ).all()
 
-    def get_calendar_entry_for_date(self, property_id: int, date: date) -> Optional[Dict]:
-        """Get calendar entry for specific date"""
+    def get_calendar_entry_for_date(self, property_id: int, date: date, auction_id: str) -> Optional[Dict]:
+        """Get calendar entry for specific date and auction"""
         entry = self.db.query(CalendarAvailability).filter(
             and_(
                 CalendarAvailability.property_id == property_id,
-                CalendarAvailability.date == date
+                CalendarAvailability.date == date,
+                CalendarAvailability.auction_id == auction_id
             )
         ).first()
 
@@ -147,3 +149,19 @@ class CalendarRepository:
             print(f"Error updating calendar entry: {e}")
             self.db.rollback()
             return False
+    def get_calendar_data_range(self,
+                                check_in: date,
+                                check_out: date,
+                                property_id: int,
+                                auction_id: str) -> Optional[list[type[CalendarAvailability]]]:
+        """
+        Get calendar availability data for a specific date range and property
+        """
+        return self.db.query(CalendarAvailability).filter(
+            and_(
+                CalendarAvailability.date >= check_in,
+                CalendarAvailability.date <= check_out,
+                CalendarAvailability.property_id == property_id,
+                CalendarAvailability.auction_id == uuid.UUID(auction_id)
+            )
+        ).all()

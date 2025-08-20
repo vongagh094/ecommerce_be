@@ -1,5 +1,7 @@
+from app.db.repositories.bid_repository import BidRepository
 from app.db.repositories.calender_repository import CalendarRepository
-from app.schemas.calendarDTO import PropertyCalendarResponseData, DayData
+from app.schemas.BidDTO import BidRecord
+from app.schemas.calendarDTO import PropertyCalendarResponseData, DayData, MessageResponseDTO
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional
 import logging
@@ -8,9 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 class CalendarService:
-    def __init__(self, calendar_repository: CalendarRepository):
+    def __init__(self,
+                 calendar_repository: CalendarRepository,
+                 bid_repository: BidRepository
+                 ):
         self.calendar_repository = calendar_repository
-
+        self.bid_repository = bid_repository
     # ===== KEEP EXISTING METHODS UNCHANGED =====
 
     def get_property_calendar(
@@ -82,210 +87,78 @@ class CalendarService:
         if not exists:
             raise ValueError(f"Property {property_id} not found")
 
-    def get_auction_highest_bids_for_polling(
-            self,
-            auction_id: str,
-            property_id: int,
-            start_date: date,
-            end_date: date
-    ) -> Dict[str, Dict]:
-        """
-        FIXED METHOD: Get highest bids for date range - For frontend polling
-        Properly handle SQLAlchemy objects
-        """
+    def update_calendar_availability(self,
+                                     id:int,
+                                     check_in:date,
+                                     check_out:date,
+                                     property_id:int,
+                                     auction_id:str,
+                                     price_per_night) -> MessageResponseDTO:
+        """Update availability of a calendar day"""
+
+        # tính giá phòng trên ngày
+        nights = (check_out - check_in).days
+        if nights:
+            total_price = price_per_night * nights
+        else:
+            total_price = price_per_night * (nights + 1)
+        total_day = (check_out - check_in).days + 1
+        bid_amount = total_price / total_day
+        # 1. Lấy chuỗi ngày mà user đó bid
+            #1.1 có thể có ngày,có thể chưa có ngày đó - hoặc nên tạo ngày khi có auction -> trigger
+            #=> luôn có ngày để check
         try:
-            # Use repository method to get calendar availability data
-            calendar_entries = self.calendar_repository.get_calendar_availability_for_date_range(
-                property_id, start_date, end_date
+            calendar_entries = self.calendar_repository.get_calendar_data_range(
+                check_in,
+                check_out,
+                property_id,
+                auction_id
             )
-
-            # Build result dictionary
-            result = {}
-            current_date = start_date
-
-            while current_date <= end_date:
-                date_str = current_date.strftime('%Y-%m-%d')
-
-                # Find calendar entry for this date
-                # FIXED: Handle SQLAlchemy objects properly
-                entry = None
-                for calendar_entry in calendar_entries:
-                    # Access SQLAlchemy object attributes with dot notation
-                    if calendar_entry.date == current_date:
-                        entry = calendar_entry
-                        break
-
-                if entry and entry.price_amount:
-                    result[date_str] = {
-                        "highest_bid": int(entry.price_amount),
-                        "bid_id": str(entry.bid_id) if entry.bid_id else None,
-                        "bidder_id": getattr(entry, 'highest_bidder_id', None),
-                        "total_bids": getattr(entry, 'bid_count', 1),
-                        "is_available": entry.is_available,
-                        "updated_at": entry.updated_at.isoformat() if entry.updated_at else None
-                    }
-                else:
-                    result[date_str] = {
-                        "highest_bid": 0,
-                        "bid_id": None,
-                        "bidder_id": None,
-                        "total_bids": 0,
-                        "is_available": True,
-                        "updated_at": None
-                    }
-
-                current_date += timedelta(days=1)
-
-            logger.info(f"Retrieved highest bids for auction {auction_id}, dates {start_date} to {end_date}")
-            return result
-
         except Exception as e:
-            logger.error(f"Error getting auction highest bids: {e}")
-            logger.exception("Full exception details:")  # Add full stack trace
-            return {}
-
-    def get_user_bid_comparison_data(
-            self,
-            auction_id: str,
-            user_id: int,
-            property_id: int,
-            user_bid_data: Dict
-    ) -> Dict:
-        """
-        NEW METHOD: Compare user's bid with current highest bids
-        For win/loss status calculation
-        """
-        try:
-            if not user_bid_data:
-                return {
-                    "success": True,
-                    "has_bid": False,
-                    "comparison": {}
-                }
-
-            # Get user's date range
-            start_date = datetime.fromisoformat(user_bid_data["check_in"]).date()
-            end_date = datetime.fromisoformat(user_bid_data["check_out"]).date()
-
-            # Get current highest bids for that range using repository
-            highest_bids = self.get_auction_highest_bids_for_polling(
-                auction_id, property_id, start_date, end_date
+            logger.error(f"Error getting calendar entries: {e}")
+            return MessageResponseDTO(
+                success=False,
+                message=f"Error getting calendar entries: {str(e)}",
+                Details={}
             )
+        # 2. So sánh bid_amount có lớn hơn => danh sách những ngày sẽ update
+        update_calendar_list = []
+        for entry in calendar_entries:
+            if entry.price_amount is None or entry.price_amount < bid_amount:
+                entry.bid_id = id
+                entry.price_amount = bid_amount
+                entry.updated_at = datetime.now()
+                update_calendar_list.append(entry)
 
-            # Calculate win/loss status for each date
-            comparison = {}
-            user_price_per_night = user_bid_data["price_per_night"]
-
-            current_date = start_date
-            while current_date < end_date:
-                date_str = current_date.strftime('%Y-%m-%d')
-                current_highest = highest_bids.get(date_str, {}).get("highest_bid", 0)
-
-                comparison[date_str] = {
-                    "user_bid": user_price_per_night,
-                    "current_highest": current_highest,
-                    "status": "WINNING" if user_price_per_night >= current_highest else "LOSING",
-                    "difference": user_price_per_night - current_highest,
-                    "is_winning": user_price_per_night >= current_highest
-                }
-
-                current_date += timedelta(days=1)
-
-            # Calculate overall statistics
-            winning_dates = [d for d, data in comparison.items() if data["status"] == "WINNING"]
-            losing_dates = [d for d, data in comparison.items() if data["status"] == "LOSING"]
-            win_rate = len(winning_dates) / len(comparison) * 100 if comparison else 0
-
-            logger.info(f"Calculated bid comparison for user {user_id}, win rate: {win_rate:.1f}%")
-
-            return {
-                "success": True,
-                "has_bid": True,
-                "user_bid": user_bid_data,
-                "comparison": comparison,
-                "summary": {
-                    "win_rate": round(win_rate, 1),
-                    "winning_dates": winning_dates,
-                    "losing_dates": losing_dates,
-                    "total_nights": len(comparison),
-                    "winning_nights": len(winning_dates),
-                    "losing_nights": len(losing_dates)
-                }
-            }
-
-        except Exception as e:
-            logger.error(f"Error calculating user bid comparison: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
-
-    def update_calendar_with_new_bid(
-            self,
-            property_id: int,
-            bid_record
-    ) -> List[str]:
-        """
-        FIXED METHOD: Update calendar_availability when new bid is placed
-        Handle repository responses properly
-        """
+        # 3. Update calendar entries
         try:
-            updated_dates = []
-            current_date = bid_record.check_in
-
-            while current_date < bid_record.check_out:
-                date_str = current_date.strftime('%Y-%m-%d')
-
-                # Check if this bid is higher than current highest for this date
-                current_entry = self.calendar_repository.get_calendar_entry_for_date(
-                    property_id, current_date
+            for entry in update_calendar_list:
+                success = self.calendar_repository.update_calendar_entry(
+                    property_id=property_id,
+                    date=entry.date,
+                    bid_id=str(entry.bid_id) if entry.bid_id else None,
+                    price_amount=entry.price_amount
                 )
+                if not success:
+                    logger.warning(f"Failed to update calendar entry for date {entry.date}")
 
-                should_update = False
-
-                if not current_entry:
-                    # Create new entry using repository
-                    success = self.calendar_repository.create_calendar_entry(
-                        property_id=property_id,
-                        date=current_date,
-                        bid_id=bid_record.id,
-                        price_amount=bid_record.price_per_night,
-                        is_available=True
-                    )
-                    if success:
-                        should_update = True
-                        logger.info(f"Created new calendar entry for {current_date}")
-
-                else:
-                    # FIXED: Handle repository response properly
-                    if isinstance(current_entry, dict):
-                        current_price = current_entry.get('price_amount', 0) or 0
-                    else:
-                        # If it's a SQLAlchemy object
-                        current_price = getattr(current_entry, 'price_amount', 0) or 0
-
-                    if current_price < bid_record.price_per_night:
-                        # Update existing entry using repository
-                        success = self.calendar_repository.update_calendar_entry(
-                            property_id=property_id,
-                            date=current_date,
-                            bid_id=bid_record.id,
-                            price_amount=bid_record.price_per_night
-                        )
-                        if success:
-                            should_update = True
-                            logger.info(
-                                f"Updated calendar entry for {current_date}: {current_price} → {bid_record.price_per_night}")
-
-                if should_update:
-                    updated_dates.append(date_str)
-
-                current_date += timedelta(days=1)
-
-            logger.info(f"Calendar updated for {len(updated_dates)} dates: {updated_dates}")
-            return updated_dates
+            return MessageResponseDTO(
+                success=True,
+                message=f"Successfully updated {len(update_calendar_list)} calendar entries",
+                Details={
+                    "updated_entries": len(update_calendar_list),
+                    "date_range": {
+                        "check_in": check_in.isoformat(),
+                        "check_out": check_out.isoformat()
+                    },
+                    "bid_amount": bid_amount
+                }
+            )
 
         except Exception as e:
-            logger.error(f"Error updating calendar with new bid: {e}")
-            logger.exception("Full exception details:")
-            return []
+            logger.error(f"Error updating calendar entries: {e}")
+            return MessageResponseDTO(
+                success=False,
+                message=f"Error updating calendar entries: {str(e)}",
+                Details={"error": str(e)}
+            )

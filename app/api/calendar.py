@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.core.container import Container
 from dependency_injector.wiring import inject, Provide
+
+from app.schemas.BidDTO import BidsDTO
 from app.services.calendar_service import CalendarService
 from app.services.bid_service import BidService
 router = APIRouter()
@@ -52,3 +54,9 @@ async def get_user_win_loss_status(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting win/loss status: {str(e)}")
 
+@router.post("/test_calendar")
+@inject
+async def get_test(bid_data: BidsDTO,
+             calendar_service: CalendarService = Depends(Provide[Container.calendar_service])
+             ):
+    return calendar_service.update_calendar_availability(bid_data)

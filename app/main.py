@@ -18,6 +18,8 @@ from app.core.container import Container
 from app.services.CORS import setup_cors
 from app.api.review import router as review_router
 from app.api.calendar import router as calendar_router
+from app.api.winlose import router as winlose_router
+from app.api.winner import router as winner_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Application startup")
@@ -40,7 +42,9 @@ def create_app() -> FastAPI:
         "app.api.review",
         "app.api.auction",
         "app.api.calendar",
-        "app.api.booking"
+        "app.api.booking",
+        "app.api.winlose",
+        "app.api.winner"
     ])
     """Create and configure the FastAPI application."""
     app = FastAPI(
@@ -65,6 +69,8 @@ def create_app() -> FastAPI:
     app.include_router(notification_router, prefix="/notifications", tags=["Notifications"])
     app.include_router(auction_router, prefix="/auctions", tags=["Auctions"])
     app.include_router(booking_router, prefix="/bookings", tags=["Bookings"])
+    app.include_router(winlose_router, prefix="/winlose", tags=["Win/Lose"])
+    app.include_router(winner_router, prefix="/winner", tags=["Winner"])
     return app
 
 app = create_app()
