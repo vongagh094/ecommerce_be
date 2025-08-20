@@ -39,9 +39,9 @@ class PropertyCreateDTO(BaseModel):
     bathrooms: Optional[int] = None
     address_line1: Optional[str] = None
     city: str
-    state: str
+    state: Optional[str] = None
     country: str
-    postal_code: str
+    postal_code: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     base_price: float
@@ -53,7 +53,7 @@ class PropertyCreateDTO(BaseModel):
     is_guest_favorite: Optional[bool] = None
     language: str = "en"
     status: str = "DRAFT"
-    amenities: Optional[List[PropertyAmenityDTO]] = None
+    amenities: Optional[List[UUIDType]] = None
     images: Optional[List[PropertyImageDTO]] = None
 
     class Config:
@@ -83,9 +83,9 @@ class PropertyUpdateDTO(BaseModel):
     is_guest_favorite: Optional[bool] = None
     language: Optional[str] = None
     status: Optional[str] = None
-    amenities: Optional[List[PropertyAmenityDTO]] = None
+    amenities: Optional[List[UUIDType]] = None
     images: Optional[List[PropertyImageDTO]] = None
-
+    deletedImageIds: Optional[List[UUIDType]] = None
     class Config:
         from_attributes = True
 
@@ -101,9 +101,9 @@ class PropertyResponseDTO(BaseModel):
     bathrooms: Optional[int] = None
     address_line1: Optional[str] = None
     city: str
-    state: str
+    state: Optional[str] = None
     country: str
-    postal_code: str
+    postal_code: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     base_price: float
@@ -120,6 +120,5 @@ class PropertyResponseDTO(BaseModel):
     amenities: Optional[List[AmenityDTO]] = None
     images: Optional[List[PropertyImageDTO]] = None
     host: Optional[HostDTO] = None
-
     class Config:
         from_attributes = True

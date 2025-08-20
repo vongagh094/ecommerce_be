@@ -10,14 +10,33 @@ from app.features.property.services.property_amenity_service import PropertyAmen
 
 router = APIRouter()
 
+# thêm offset và limit vô đi
 @router.get("/available", response_model=List[AmenityDTO], operation_id="getAvailableAmenities")
 @inject
 async def get_available_amenities(
     db: Session = Depends(get_db_session),
-    property_amenity_service: PropertyAmenityService = Depends(Provide[Container.property_amenity_service])
+    property_amenity_service: PropertyAmenityService = Depends(Provide[Container.property_amenity_service]),
+    offset: int = 0,
+    limit: int = 100
 ):
     try:
-        amenities = property_amenity_service.get_available_amenities()
+        amenities = property_amenity_service.get_available_amenities(offset=offset, limit=limit)
+        return amenities
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"detail": f"Internal server error: {str(e)}"})
+    
+# search amenity
+@router.get("/search", response_model=List[AmenityDTO], operation_id="searchAmenities")
+@inject
+async def search_amenities(
+    db: Session = Depends(get_db_session),
+    property_amenity_service: PropertyAmenityService = Depends(Provide[Container.property_amenity_service]),
+    query: str = "",
+    offset: int = 0,
+    limit: int = 100
+):
+    try:
+        amenities = property_amenity_service.search_amenities(query=query, offset=offset, limit=limit)
         return amenities
     except Exception as e:
         raise HTTPException(status_code=500, detail={"detail": f"Internal server error: {str(e)}"})

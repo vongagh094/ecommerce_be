@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Numeric, BigInteger
-from sqlalchemy.orm import relationship, foreign
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.sessions.session import Base
 
@@ -44,6 +44,7 @@ class Property(Base):
     # Direct many-to-many to amenities for convenience (read-only to avoid overlap writes)
     amenities = relationship("Amenity", secondary="property_amenities", back_populates="properties", viewonly=True, overlaps="property_amenities,amenity,properties")
     conversations = relationship("Conversation", back_populates="property")
+    bookings = relationship("Booking", back_populates="property")
 
     # Property extras per schema
     highlights = relationship("PropertyHighlight", back_populates="property")
@@ -52,8 +53,8 @@ class Property(Base):
 
     # Read-only link to auctions without touching auction model
     auctions = relationship(
-        "AuctionDB",
-        primaryjoin="Property.id == foreign(AuctionDB.property_id)",
+        "Auction",
+        primaryjoin="Property.id == foreign(Auction.property_id)",
         viewonly=True,
         lazy="selectin",
     )

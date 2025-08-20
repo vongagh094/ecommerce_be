@@ -18,7 +18,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_super_host = Column(Boolean, default=False)
     host_about = Column(Text)
-    host_review_count = Column(Integer, default=None)
+    host_review_count = Column(Integer, default=0)
     host_rating_average = Column(Numeric(3, 2))
     created_at = Column(DateTime, default=lambda: datetime.now())
     updated_at = Column(DateTime, default=lambda: datetime.now(), onupdate=lambda: datetime.now())
@@ -33,8 +33,12 @@ class User(Base):
     wishlists = relationship("Wishlist", back_populates="user", foreign_keys="[Wishlist.user_id]")
     conversations_as_guest = relationship("Conversation", back_populates="guest", foreign_keys="[Conversation.guest_id]")
     conversations_as_host = relationship("Conversation", back_populates="host", foreign_keys="[Conversation.host_id]")
+    notification = relationship("Notification", back_populates="user", foreign_keys="[Notification.user_id]")
+    subscription = relationship("Subscription", back_populates="user", foreign_keys="[Subscription.user_id]")
 
 # Imports ở cuối để tránh looped
 from app.db.models.property import Property
 from app.db.models.wishlist import Wishlist
 from app.db.models.conversation import Conversation
+from app.db.models.notification import Notification
+from app.db.models.subscription import Subscription

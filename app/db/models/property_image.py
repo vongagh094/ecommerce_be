@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, BigInteger
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.orm import relationship
@@ -13,7 +13,7 @@ class PropertyImage(Base):
     image_url = Column(Text, nullable=False)
     alt_text = Column(String(255))
     title = Column(String(255))
-    display_order = Column(Integer, default=0)
+    display_order = Column(BigInteger, default=0)
     is_primary = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now())
 

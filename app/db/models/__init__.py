@@ -10,10 +10,10 @@ from .conversation import Conversation
 from .message import Message
 from .wishlist import Wishlist
 from .wishlist_property import WishlistProperty
-from .auction import AuctionDB
+from .auction import Auction
 from .Bid import Bids
 from .property_extras import PropertyHighlight, HouseRule, LocationDescription
-from .booking import Booking
+from .bookings import Booking
 from .calendar_availability import CalendarAvailability
 from .second_chance_offer import SecondChanceOffer
 from .bid_event import BidEvent
@@ -31,7 +31,7 @@ __all__ = [
 	"Message",
 	"Wishlist",
 	"WishlistProperty",
-	"AuctionDB",
+	"Auction",
 	"Bids",
 	"PropertyHighlight",
 	"HouseRule",

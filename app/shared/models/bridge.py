@@ -2,7 +2,7 @@
 
 # Import existing models to maintain compatibility
 from ...db.models.basic import BasicModel
-from ...db.models.auction import AuctionDB as ExistingAuction
+from ...db.models.auction import Auction as ExistingAuction
 from ...db.models.Bid import Bids as ExistingBid
 
 # Re-export for compatibility

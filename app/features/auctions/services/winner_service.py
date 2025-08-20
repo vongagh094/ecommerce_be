@@ -6,7 +6,7 @@ from sqlalchemy import select, and_, func
 from datetime import timedelta
 
 from ....shared.exceptions import NotFoundError, BusinessLogicError, AuthorizationError
-from ....db.models import Bids, AuctionDB, Property, PropertyImage
+from ....db.models import Bids, Auction, Property, PropertyImage
 
 
 class WinnerService:
@@ -15,7 +15,7 @@ class WinnerService:
 
 	async def list_winners_for_user(self, user_id: int) -> List[Dict[str, Any]]:
 		rows = self.db.execute(
-			select(Bids, AuctionDB, Property).join(AuctionDB, Bids.auction_id == AuctionDB.id).join(Property, Property.id == AuctionDB.property_id).where(and_(Bids.user_id == user_id, Bids.status == "ACTIVE"))
+			select(Bids, Auction, Property).join(Auction, Bids.auction_id == Auction.id).join(Property, Property.id == Auction.property_id).where(and_(Bids.user_id == user_id, Bids.status == "ACTIVE"))
 		).all()
 		result = []
 		for bid, auction, prop in rows:
@@ -44,7 +44,7 @@ class WinnerService:
 		bid = self.db.execute(select(Bids).where(and_(Bids.auction_id == auction_id, Bids.user_id == user_id))).scalar_one_or_none()
 		if not bid:
 			raise NotFoundError("Winner", auction_id)
-		auction = self.db.get(AuctionDB, auction_id)
+		auction = self.db.get(Auction, auction_id)
 		prop = self.db.get(Property, auction.property_id)
 		return {
 			"id": str(bid.id),

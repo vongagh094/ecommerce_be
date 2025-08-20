@@ -14,7 +14,7 @@ from sqlalchemy import select, and_, func
 
 from ....core.config import settings
 from ....shared.exceptions import ValidationError, BusinessLogicError, NotFoundError, AuthorizationError
-from ....db.models import Bids, AuctionDB, Property, Booking, PaymentSession, PaymentTransaction
+from ....db.models import Bids, Auction, Property, Booking, PaymentSession, PaymentTransaction
 
 SESSION_TTL_SECONDS = 15 * 60
 
@@ -136,7 +136,7 @@ class PaymentService:
 			check_in_dt = _dt.combine(check_in_date, _time.min)
 			check_out_dt = _dt.combine(check_out_date, _time.min)
 
-			auction = self.db.get(AuctionDB, auction_id)
+			auction = self.db.get(Auction, auction_id)
 			if not auction:
 				# Support FE-provided UUID as primary key if valid
 				try:
@@ -144,7 +144,7 @@ class PaymentService:
 					auction_uuid = _uuid.UUID(auction_id)
 				except Exception:
 					auction_uuid = None
-				auction = AuctionDB(
+				auction = Auction(
 					property_id=1046426558692326079,
 					start_date=check_in_dt,
 					end_date=check_out_dt,

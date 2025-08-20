@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, BigInteger
+from sqlalchemy import Column, ForeignKey, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.sessions.session import Base

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, and_
 
 from ....shared.exceptions import ValidationError, BusinessLogicError, NotFoundError, AuthorizationError
-from ....db.models import Booking, Property, User, AuctionDB, Bids, CalendarAvailability, Conversation, PaymentSession
+from ....db.models import Booking, Property, User, Auction, Bids, CalendarAvailability, Conversation, PaymentSession
 from ....features.messages.repositories.conversation_repository import ConversationRepository
 
 
@@ -169,7 +169,7 @@ class BookingService:
 		return None
 
 	def _get_property_id_from_auction(self, auction_id):
-		a = self.db.execute(select(AuctionDB).where(AuctionDB.id == auction_id)).scalar_one()
+		a = self.db.execute(select(Auction).where(Auction.id == auction_id)).scalar_one()
 		return a.property_id
 
 	def _ensure_dates_available(self, property_id: int, check_in: date, check_out: date) -> None:

@@ -1,8 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.core.config import get_settings
 import redis
+from contextlib import asynccontextmanager
 
 # Define Base before importing models
 Base = declarative_base()
@@ -20,6 +22,11 @@ settings = get_settings()
 engine = create_engine(settings.postgres_db.url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Asynchronous SQLAlchemy setup
+async_engine = create_async_engine(settings.postgres_db.url.replace("postgresql://", "postgresql+asyncpg://"), echo=True)
+AsyncSessionLocal = async_sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
+
+Base = declarative_base()
 
 def get_db_session() -> Session:
     """Get database session"""
@@ -28,6 +35,19 @@ def get_db_session() -> Session:
         return db
     finally:
         db.close()
+        
+from typing import AsyncGenerator
+
+@asynccontextmanager
+async def get_async_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """Get asynchronous database session"""
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 def create_tables():
     """Create all tables"""
