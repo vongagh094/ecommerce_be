@@ -8,7 +8,11 @@ BEGIN
         'bid_placed',
         NEW.user_id,
         NEW.id,
-        jsonb_build_object('status', NEW.status),
+        jsonb_build_object('status', NEW.status,
+                                    'bid_price', NEW.total_amount,
+                                    'check_in', NEW.check_in,
+                                    'check_out', NEW.check_out
+        ),
         NEW.created_at,
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
@@ -32,7 +36,11 @@ BEGIN
         'bid_update',
         NEW.user_id,
         NEW.id,
-        jsonb_build_object('status', NEW.status),
+        jsonb_build_object('status', NEW.status,
+                                    'bid_price', NEW.total_amount,
+                                    'check_in', NEW.check_in,
+                                    'check_out', NEW.check_out
+                                    ),
         NEW.created_at,
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
