@@ -77,20 +77,29 @@ async def call_back(msg: AMQPMessage,
                 from collections import namedtuple
                 from datetime import datetime
 
-                BidRecord = namedtuple('BidRecord', ['id', 'check_in', 'check_out', 'price_per_night'])
+                BidRecord = namedtuple('BidRecord',
+                                       [
+                                                    'id',
+                                                    'check_in',
+                                                    'check_out',
+                                                    'price_per_night'
 
+                                       ])
                 bid_record = BidRecord(
                     id=bid_id,
                     check_in=datetime.fromisoformat(bids_dto.check_in).date(),
                     check_out=datetime.fromisoformat(bids_dto.check_out).date(),
-                    price_per_night=result.get('price_per_night')
+                    price_per_night=result.get('price_per_night'),
                 )
 
                 # Update calendar with new bid
-                updated_dates = calendar_service.update_calendar_with_new_bid(
-                    property_id=bids_dto.property_id,
-                    bid_record=bid_record
-                )
+                updated_dates = calendar_service.update_calendar_availability(bid_record.id,
+                                                                               bid_record.check_in,
+                                                                               bid_record.check_out,
+                                                                               bids_dto.property_id,
+                                                                               bids_dto.auction_id,
+                                                                               bid_record.price_per_night
+                                                                              )
 
                 if updated_dates:
                     print(f"📅 Calendar updated for dates: {updated_dates}")

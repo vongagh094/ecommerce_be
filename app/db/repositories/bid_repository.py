@@ -3,7 +3,7 @@ from app.schemas.BidDTO import BidsDTO
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 
 
 class BidRepository:
@@ -16,7 +16,7 @@ class BidRepository:
             and_(
                 Bids.user_id == user_id,
                 Bids.auction_id == auction_id,
-                Bids.status == 'ACTIVE'  # Model uses lowercase 'active'
+                Bids.status == 'ACTIVE'
             )
         ).first()
 
@@ -25,14 +25,13 @@ class BidRepository:
         new_bid = Bids(
             auction_id=bids_dto.auction_id,
             user_id=bids_dto.user_id,
-            check_in=datetime.fromisoformat(bids_dto.check_in),  # Convert to datetime
-            check_out=datetime.fromisoformat(bids_dto.check_out),  # Convert to datetime
-            total_amount=bids_dto.bid_amount,  # DTO.bid_amount → Model.total_amount
+            check_in=datetime.fromisoformat(bids_dto.check_in),
+            check_out=datetime.fromisoformat(bids_dto.check_out),
+            total_amount=bids_dto.bid_amount,
             allow_partial=bids_dto.allow_partial,
             partial_awarded=bids_dto.partial_awarded,
-            bid_time=datetime.fromisoformat(bids_dto.bid_time),  # Convert to datetime
+            bid_time=datetime.fromisoformat(bids_dto.bid_time),
             status="ACTIVE"
-            # nights and price_per_night will be computed automatically by DB
         )
 
         self.db.add(new_bid)
@@ -42,15 +41,13 @@ class BidRepository:
 
     def update_existing_bid(self, existing_bid: Bids, bids_dto: BidsDTO) -> Bids:
         """Update existing bid with data from DTO"""
-        # Update all fields with proper mapping
         existing_bid.check_in = datetime.fromisoformat(bids_dto.check_in)
         existing_bid.check_out = datetime.fromisoformat(bids_dto.check_out)
-        existing_bid.total_amount = bids_dto.bid_amount  # DTO.bid_amount → Model.total_amount
+        existing_bid.total_amount = bids_dto.bid_amount
         existing_bid.allow_partial = bids_dto.allow_partial
         existing_bid.partial_awarded = bids_dto.partial_awarded
         existing_bid.bid_time = datetime.fromisoformat(bids_dto.bid_time)
         existing_bid.updated_at = datetime.now()
-        # nights and price_per_night will be recomputed automatically by DB
 
         self.db.commit()
         self.db.refresh(existing_bid)
@@ -67,14 +64,21 @@ class BidRepository:
         )
 
         if existing_bid:
-            # UPDATE existing bid
             updated_bid = self.update_existing_bid(existing_bid, bids_dto)
             return updated_bid, False
         else:
-            # INSERT new bid
             new_bid = self.create_new_bid(bids_dto)
             return new_bid, True
 
     def rollback(self):
         """Rollback the current transaction."""
         self.db.rollback()
+
+    def get_active_bids_by_auction(self,auction_id: str) -> list[type[Bids]]:
+        """Get all active bids for a specific auction"""
+        return self.db.query(Bids).filter(
+            and_(
+                Bids.auction_id == auction_id,
+                Bids.status == 'ACTIVE'
+            )
+        ).all()
