@@ -1,43 +1,4 @@
 services:
-  redis:
-      image: redis:latest
-      ports:
-        - "6379:6379"
-      container_name: redis_container
-      logging:
-        driver: "json-file"
-        options:
-          max-size: "10m"
-          max-file: "3"
-      volumes:
-        - ./Repository/db_data/redis_data:/data
-      healthcheck:
-        test: ["CMD", "redis-cli", "ping"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 10s
-
-#  bidding-server:
-#    build: ./BE
-#    ports:
-#        - "8000:8000"
-#    container_name: bidding-python-server
-#    environment:
-#      - REDIS_HOST=redis
-#    depends_on:
-#      - redis
-#
-  ws-server:
-   build: ./ws-server
-   container_name: ws_server_container
-   ports:
-     - "8080:8080"
-   environment:
-     - REDIS_URL=redis://redis:6379
-   depends_on:
-     - redis
-
   postgres:
     image: postgres:latest
     container_name: Postgres_container

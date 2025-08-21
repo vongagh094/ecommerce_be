@@ -121,7 +121,7 @@ async def call_back(msg: AMQPMessage,
 
     return "call back complete"
 # producers to send a bid
-@bidding.post("/sending_bid", tags=["bidings"])
+@bidding.post("/api/sending_bid", tags=["bidings"])
 @inject
 async def sending_bid(
         bid: BidsDTO,
@@ -130,7 +130,7 @@ async def sending_bid(
      return await rabbitMQ_service.use_producer(bid)
 
 # API travel the message from the stream 
-@bidding.get("/receiving_bid", tags=["bidings"])
+@bidding.get("/api/receiving_bid", tags=["bidings"])
 @inject
 async def receiving_bid(
         rabbitmq_service: RabbitMQService = Depends(Provide[Container.rabbitMQStream_service]),
