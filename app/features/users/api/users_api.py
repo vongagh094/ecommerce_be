@@ -100,4 +100,44 @@ async def get_me_profile(user = Depends(require_auth)):
         "host_rating_average": user.host_rating_average,
         "is_super_host": user.is_super_host,
     }
-	
+
+@router.get("/list/profiles", status_code=200)
+async def get_list_profiles(
+    offset: int = 0, 
+    limit: int = 100, 
+    service: UserService = Depends(get_user_service)
+):
+    return [
+        {
+            "id": user.id,
+            "auth0Id": user.auth0_id,
+            "email": user.email,
+             "name": user.full_name,
+             "picture": user.profile_image_url,
+             "phone_number": user.phone_number,
+             "gender": user.gender,
+             "is_active": user.is_active,
+             "host_about": user.host_about,
+             "host_review_count": user.host_review_count,
+             "host_rating_average": user.host_rating_average,
+             "is_super_host": user.is_super_host,
+         }
+         for user in await service.get_all_users(offset=offset, limit=limit)
+     ]
+
+@router.put("/status/{user_id}", status_code=200)
+async def update_user_status(
+	user_id: int,
+	status: str,
+	service: UserService = Depends(get_user_service)
+):
+	"""Update user status."""
+	try:
+		user = await service.update_user_status(user_id=user_id, status=status)
+		return {
+			"is_active": user.is_active,
+		}
+	except HTTPException:
+		raise
+	except Exception:
+		raise HTTPException(status_code=500, detail="Failed to update user status")

@@ -77,3 +77,22 @@ class UserService:
 		self.db.commit()
 		self.db.refresh(user)
 		return user 
+
+	async def get_all_users(self, offset: int = 0, limit: int = 100) -> list[User]:
+		"""Get a list of all users."""
+		return self.db.query(User).order_by(User.created_at).offset(offset).limit(limit).all()
+
+	async def update_user_status(self, user_id: int, status: str) -> User:
+		"""Update the status of a user."""
+		user = self.db.query(User).filter(User.id == user_id).first()
+		if not user:
+			raise ValueError("User not found")
+
+		if status == 'false':
+			user.is_active = False
+		else:
+			user.is_active = True
+
+		self.db.commit()
+		self.db.refresh(user)
+		return user

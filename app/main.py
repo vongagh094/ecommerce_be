@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.config import settings
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import upload
 from app.api.bidding import bidding
 from app.features.messages.api.conversation_routes import router as conversation_router
 from app.features.messages.api.message_routes import router as message_router
@@ -86,20 +85,19 @@ def create_app() -> FastAPI:
     app.include_router(bidding)     # Existing bidding functionality
     
     app.include_router(bidding)
-    app.include_router(conversation_router, prefix="/conversations", tags=["Conversations"])
-    app.include_router(message_router, prefix="/messages", tags=["Messages"])
-    app.include_router(pusher_config_router, prefix="/pusher", tags=["Pusher Config"])
-    app.include_router(wishlist_router, prefix="/wishlist", tags=["Wishlist"])
-    app.include_router(upload.router)
-    app.include_router(property_router, prefix="/properties", tags=["Properties"])
-    app.include_router(property_amenity_router, prefix="/property-amenities", tags=["Property Amenities"])
-    app.include_router(property_type_router, prefix="/property-types", tags=["Property Types"])
-    app.include_router(property_category_router, prefix="/property-categories", tags=["Property Categories"])
-    app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
-    app.include_router(calendar_router, prefix="/calendar", tags=["Calendar"])
-    app.include_router(notification_router, prefix="/notifications", tags=["Notifications"])
-    app.include_router(auction_router, prefix="/auctions", tags=["Auctions"])
-    app.include_router(booking_router, prefix="/bookings", tags=["Bookings"])
+    app.include_router(conversation_router, prefix="/api/v1/conversations", tags=["Conversations"])
+    app.include_router(message_router, prefix="/api/v1/messages", tags=["Messages"])
+    app.include_router(pusher_config_router, prefix="/api/v1/pusher", tags=["Pusher Config"])
+    app.include_router(wishlist_router, prefix="/api/v1/wishlist", tags=["Wishlist"])
+    app.include_router(property_router, prefix="/api/v1/properties-host", tags=["PropertiesHost"])
+    app.include_router(property_amenity_router, prefix="/api/v1/property-amenities", tags=["Property Amenities"])
+    app.include_router(property_type_router, prefix="/api/v1/property-types", tags=["Property Types"])
+    app.include_router(property_category_router, prefix="/api/v1/property-categories", tags=["Property Categories"])
+    app.include_router(review_router, prefix="/api/v1/reviews", tags=["Reviews"])
+    app.include_router(calendar_router, prefix="/api/v1/calendar", tags=["Calendar"])
+    app.include_router(notification_router, prefix="/api/v1/notifications", tags=["Notifications"])
+    app.include_router(auction_router, prefix="/api/v1/auctions", tags=["Auctions"])
+    app.include_router(booking_router, prefix="/api/v1/bookings", tags=["Bookings"])
     app.include_router(winlose_router, prefix="/winlose", tags=["Win/Lose"])
     app.include_router(winner_router, prefix="/winner", tags=["Winner"])
     return app
