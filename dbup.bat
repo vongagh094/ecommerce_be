@@ -45,7 +45,7 @@ exit /b 1
 :all_ready
 
 echo [STEP]: Migrating PostgreSQL...
-docker cp ".\Repository\Migration_scripts\postgres" Postgres_container:/migrations/
+docker cp ".\Repository\Migration_scripts\postgres" Postgres_container:/Migrations/
 if %errorlevel% neq 0 (
     echo [ERR]: Failed to copy migration scripts to Redis container.
     exit /b %errorlevel%
@@ -53,7 +53,7 @@ if %errorlevel% neq 0 (
 for %%f in (.\Repository\Migration_scripts\postgres\*.sql) do (
     echo Executing %%~nxf...
     @echo off
-    docker exec -i Postgres_container psql -U postgres -d ecommerce_db -f /migrations/%%~nxf>nul
+    docker exec -i Postgres_container psql -U postgres -d ecommerce_db -f /Migrations/%%~nxf>nul
     if !errorlevel! neq 0 (
         echo [ERR]: Failed executing %%~nxf in PostgreSQL
     )
@@ -62,12 +62,12 @@ echo [STATUS]: PostgreSQL migration completed.
 
 echo [STATUS]: Initializing Redis with data...
 
-docker cp ".\Repository\migration_scripts\redis" redis_container:/data/
+docker cp ".\Repository\Migration_scripts\redis" redis_container:/data/
 if %errorlevel% neq 0 (
     echo [ERR]: Failed to copy migration scripts to Redis container.
     exit /b %errorlevel%
 )
-for %%f in (.\Repository\migration_scripts\redis\*.rdb) do (
+for %%f in (.\Repository\Migration_scripts\redis\*.rdb) do (
     echo Restoring %%~nxf...
     docker exec -i redis_container sh -c "cat /data/redis/%%~nxf | redis-cli --pipe"
     if %errorlevel% neq 0 (

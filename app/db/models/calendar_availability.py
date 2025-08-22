@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from datetime import datetime
 from sqlalchemy import Column, Integer, ForeignKey, Boolean, DateTime, Date, String, UUID, func
 from app.db.sessions.session import Base
 

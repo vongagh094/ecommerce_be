@@ -82,8 +82,6 @@ def create_app() -> FastAPI:
     
     # Include routers
     app.include_router(api_router)  # New API structure
-    app.include_router(bidding)     # Existing bidding functionality
-    
     app.include_router(bidding)
     app.include_router(conversation_router, prefix="/api/v1/conversations", tags=["Conversations"])
     app.include_router(message_router, prefix="/api/v1/messages", tags=["Messages"])
