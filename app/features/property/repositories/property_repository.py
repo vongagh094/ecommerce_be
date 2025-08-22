@@ -2,13 +2,10 @@ from typing import List, Optional, Dict
 from sqlalchemy.orm import Session, selectinload
 from app.features.property.schemas.PropertyDTO import PropertyCreateDTO, PropertyResponseDTO, HostDTO
 from app.db.models.property import Property
-from app.db.models.user import User
 from app.db.models.property_type import PropertyType
 from app.db.models.property_category import PropertyCategory
 from app.features.property.repositories.property_amenity_repository import PropertyAmenityRepository
 from app.features.property.repositories.property_image_repository import PropertyImageRepository
-from app.features.property.schemas.AmenityDTO import AmenityDTO
-from app.features.property.schemas.PropertyImageDTO import PropertyImageDTO
 
 class PropertyRepository:
     def __init__(self, db: Session, property_amenity_repository: PropertyAmenityRepository, property_image_repository: PropertyImageRepository):
@@ -43,7 +40,7 @@ class PropertyRepository:
         """Get all properties with pagination."""
         properties = self.db.query(Property).options(
             selectinload(Property.host)
-        ).limit(limit).offset(offset).all()
+        ).order_by(Property.id).limit(limit).offset(offset).all()
         return [self._to_property_response_dto(prop) for prop in properties]
 
     def get_by_host_id(self, host_id: int, limit: int, offset: int) -> List[PropertyResponseDTO]:
