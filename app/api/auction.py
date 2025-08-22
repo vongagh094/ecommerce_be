@@ -37,7 +37,7 @@ def delete_auction(
     success = auction_service.delete_auction(auction_id)
     return {"message": "Auction deleted successfully"} if success else {"message": "Auction not found"}
 
-@router.put("/update/{auction_id}", response_model=AuctionStatusUpdateResponse, operation_id="updateAuction")
+@router.put("/update/status/{auction_id}", response_model=AuctionStatusUpdateResponse, operation_id="updateAuction")
 @inject
 def update_auction  (
         auction_id: str,

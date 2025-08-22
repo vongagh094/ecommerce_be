@@ -12,7 +12,6 @@ router = APIRouter()
 @inject
 def get_auction_winners(
         auction_id: str,
-        allow_partial: bool = False,
         winner_service: WinnerService = Depends(Provide[Container.winner_service]),
 ):
     """
