@@ -1,5 +1,6 @@
 """Property service implementation."""
 
+import logging
 from typing import List, Tuple
 from decimal import Decimal
 from datetime import datetime, timedelta

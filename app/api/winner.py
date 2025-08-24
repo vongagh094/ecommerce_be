@@ -1,16 +1,18 @@
 from fastapi import APIRouter, HTTPException, Depends
 from dependency_injector.wiring import Provide, inject
+
+from app.features.notification.services.notification_service import NotificationService
 from app.services.winner_service import WinnerService
 from app.core.container import Container
 from app.schemas.winnerDTO import DailyWinner
 
-router = APIRouter(prefix="/api/auction", tags=["winners"])
+router = APIRouter()
 
-@router.get("/winners/{auction_id}")
+@router.get("/{auction_id}")
 @inject
 def get_auction_winners(
         auction_id: str,
-        winner_service: WinnerService = Depends(Provide[Container.winner_service])
+        winner_service: WinnerService = Depends(Provide[Container.winner_service]),
 ):
     """
     Lấy danh sách người chiến thắng auction dưới dạng booking periods
@@ -37,6 +39,6 @@ def get_auction_winners(
 
 
 # Simple health check
-@router.get("/health")
+@router.get("/check/health")
 def health():
     return {"status": "ok"}

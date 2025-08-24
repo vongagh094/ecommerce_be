@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.repositories.booking_repository import BookingRepository
-from app.schemas.BookingDTO import BookingCreate, BookingUpdate, BookingResponse
+from app.schemas.BookingDTO import BookingCreate, BookingUpdate, BookingResponse, MonthlySales, OccupancyDataPoint, PropertyResponse, PropertyStats
 from app.db.models.user import User
 from app.db.models.auction import Auction
 import logging
@@ -20,7 +20,7 @@ class BookingService:
     async def create_booking(self, booking_data: BookingCreate, db: AsyncSession) -> BookingResponse:
         try:
             # Kiểm tra các trường bắt buộc
-            required_fields = ['auction_id', 'guest_id', 'host_id', 'check_in_date', 'check_out_date', 'base_amount']
+            required_fields = ['guest_id', 'host_id', 'property_id', 'check_in_date', 'check_out_date', 'base_amount']
             missing_fields = [field for field in required_fields if getattr(booking_data, field) is None]
             if missing_fields:
                 raise ValueError(f"Thiếu các trường bắt buộc: {', '.join(missing_fields)}")
@@ -60,10 +60,11 @@ class BookingService:
             if not result.scalars().first():
                 raise ValueError(f"host_id {booking_data.host_id} không tồn tại trong bảng users")
 
-            query = select(Auction).where(Auction.id == booking_data.auction_id)
-            result = await db.execute(query)
-            if not result.scalars().first():
-                raise ValueError(f"auction_id {booking_data.auction_id} không tồn tại trong bảng auctions")
+            if booking_data.auction_id:
+                query = select(Auction).where(Auction.id == booking_data.auction_id)
+                result = await db.execute(query)
+                if not result.scalars().first():
+                    raise ValueError(f"auction_id {booking_data.auction_id} không tồn tại trong bảng auctions")
 
             # Tính total_nights
             total_nights = (check_out_date - check_in_date).days
@@ -96,99 +97,33 @@ class BookingService:
         except SQLAlchemyError as e:
             logger.error(f"Lỗi cơ sở dữ liệu khi tạo booking: {str(e)}")
             raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: Cơ sở dữ liệu không khả dụng - {str(e)}"})
-        except Exception as e:
-            logger.error(f"Lỗi server khi tạo booking: {str(e)}")
-            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
 
     async def get_bookings_by_host(self, host_id: int, db: AsyncSession) -> List[BookingResponse]:
         try:
-            logger.info(f"Bắt đầu lấy bookings cho host {host_id}")
-            bookings = await self.repository.get_bookings_by_host(host_id)
-            if not bookings:
-                logger.info(f"Không tìm thấy booking nào cho host {host_id}")
-                return []
-            logger.info(f"Đã lấy {len(bookings)} bookings cho host {host_id}")
-            return bookings
+            return await self.repository.get_bookings_by_host(host_id)
         except SQLAlchemyError as e:
             logger.error(f"Lỗi cơ sở dữ liệu khi lấy bookings cho host {host_id}: {str(e)}")
-            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: Cơ sở dữ liệu không khả dụng - {str(e)}"})
-        except Exception as e:
-            logger.error(f"Lỗi server khi lấy bookings cho host {host_id}: {str(e)}")
-            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
-
-    async def get_booking(self, booking_id: int, db: AsyncSession) -> BookingResponse:
-        try:
-            logger.info(f"Bắt đầu lấy booking với ID {booking_id}")
-            booking = await self.repository.get_booking_by_id(booking_id)
-            if booking.booking_status == "NOT_FOUND":
-                logger.info(f"Không tìm thấy booking với ID {booking_id}")
-                raise HTTPException(status_code=404, detail={"detail": "Không tìm thấy booking"})
-            logger.info(f"Đã lấy booking với ID {booking_id}")
-            return booking
-        except SQLAlchemyError as e:
-            logger.error(f"Lỗi cơ sở dữ liệu khi lấy booking {booking_id}: {str(e)}")
-            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: Cơ sở dữ liệu không khả dụng - {str(e)}"})
-        except HTTPException as e:
-            raise e
-        except Exception as e:
-            logger.error(f"Lỗi server khi lấy booking {booking_id}: {str(e)}")
-            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
-
-    async def get_all_bookings(self, db: AsyncSession) -> List[BookingResponse]:
-        try:
-            logger.info("Bắt đầu lấy tất cả bookings")
-            bookings = await self.repository.get_all_bookings()
-            if not bookings:
-                logger.info("Không tìm thấy booking nào trong cơ sở dữ liệu")
-                return []
-            logger.info(f"Đã lấy {len(bookings)} bookings")
-            return bookings
-        except SQLAlchemyError as e:
-            logger.error(f"Lỗi cơ sở dữ liệu khi lấy tất cả bookings: {str(e)}")
-            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: Cơ sở dữ liệu không khả dụng - {str(e)}"})
-        except Exception as e:
-            logger.error(f"Lỗi server khi lấy tất cả bookings: {str(e)}")
             raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
 
     async def get_bookings_by_property(self, property_id: int, db: AsyncSession) -> List[BookingResponse]:
         try:
-            logger.info(f"Bắt đầu lấy bookings cho property {property_id}")
-            bookings = await self.repository.get_bookings_by_property_id(property_id)
-            if not bookings:
-                logger.info(f"Không tìm thấy booking nào cho property {property_id}")
-                return []
-            logger.info(f"Đã lấy {len(bookings)} bookings cho property {property_id}")
-            return bookings
+            return await self.repository.get_bookings_by_property_id(property_id)
         except SQLAlchemyError as e:
             logger.error(f"Lỗi cơ sở dữ liệu khi lấy bookings cho property {property_id}: {str(e)}")
-            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: Cơ sở dữ liệu không khả dụng - {str(e)}"})
-        except Exception as e:
-            logger.error(f"Lỗi server khi lấy bookings cho property {property_id}: {str(e)}")
             raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
 
     async def get_bookings_by_auction(self, auction_id: UUID, db: AsyncSession) -> List[BookingResponse]:
         try:
-            logger.info(f"Bắt đầu lấy bookings cho auction {auction_id}")
-            bookings = await self.repository.get_bookings_by_auction_id(auction_id)
-            if not bookings:
-                logger.info(f"Không tìm thấy booking nào cho auction {auction_id}")
-                return []
-            logger.info(f"Đã lấy {len(bookings)} bookings cho auction {auction_id}")
-            return bookings
+            return await self.repository.get_bookings_by_auction_id(auction_id)
         except SQLAlchemyError as e:
             logger.error(f"Lỗi cơ sở dữ liệu khi lấy bookings cho auction {auction_id}: {str(e)}")
-            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: Cơ sở dữ liệu không khả dụng - {str(e)}"})
-        except Exception as e:
-            logger.error(f"Lỗi server khi lấy bookings cho auction {auction_id}: {str(e)}")
             raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
 
-    async def update_booking(self, booking_id: UUID, update_data: BookingUpdate, db: AsyncSession) -> BookingResponse:
+    async def update_booking(self, booking_id: UUID, booking_update: BookingUpdate, db: AsyncSession) -> BookingResponse:
         try:
             logger.info(f"Bắt đầu cập nhật booking {booking_id}")
-            update_dict = update_data.dict(exclude_unset=True)
-            if update_dict.get('check_in_date') and update_dict.get('check_out_date'):
-                if not isinstance(update_dict['check_in_date'], (datetime, date)) or not isinstance(update_dict['check_out_date'], (datetime, date)):
-                    raise ValueError("check_in_date và check_out_date phải là định dạng datetime hoặc date hợp lệ")
+            update_dict = booking_update.dict(exclude_unset=True)
+            if 'check_in_date' in update_dict and 'check_out_date' in update_dict:
                 if isinstance(update_dict['check_in_date'], datetime):
                     update_dict['check_in_date'] = update_dict['check_in_date'].date()
                 if isinstance(update_dict['check_out_date'], datetime):
@@ -266,3 +201,40 @@ class BookingService:
         except Exception as e:
             logger.error(f"Lỗi server khi xóa booking {booking_id}: {str(e)}")
             raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
+
+    async def get_monthly_sales(self, property_id: int, db: AsyncSession, year: int) -> List[MonthlySales]:
+        try:
+            monthly_sales_data = await self.repository.get_monthly_sales(property_id, year)
+            return [MonthlySales(**data) for data in monthly_sales_data]
+        except SQLAlchemyError as e:
+            logger.error(f"Lỗi cơ sở dữ liệu khi lấy doanh thu hàng tháng cho property {property_id}: {str(e)}")
+            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
+
+    async def get_occupancy(self, property_id: int, db: AsyncSession, period: str, num_points: int, units_available: int = 1) -> List[OccupancyDataPoint]:
+        try:
+            if period not in ["daily", "weekly", "monthly"]:
+                raise ValueError("Period phải là 'daily', 'weekly', hoặc 'monthly'")
+            occupancy_data = await self.repository.get_occupancy(property_id, period, num_points, units_available)
+            return [OccupancyDataPoint(**data) for data in occupancy_data]
+        except ValueError as e:
+            logger.error(f"Lỗi khi lấy tỷ lệ lấp đầy cho property {property_id}: {str(e)}")
+            raise HTTPException(status_code=422, detail={"detail": str(e)})
+        except SQLAlchemyError as e:
+            logger.error(f"Lỗi cơ sở dữ liệu khi lấy tỷ lệ lấp đầy cho property {property_id}: {str(e)}")
+            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
+
+    async def get_property_stats(self, property_id: int, db: AsyncSession) -> PropertyStats:
+        try:
+            stats_data = await self.repository.get_property_stats(property_id)
+            return PropertyStats(**stats_data)
+        except SQLAlchemyError as e:
+            logger.error(f"Lỗi cơ sở dữ liệu khi lấy thống kê cho property {property_id}: {str(e)}")
+            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
+        
+    async def get_properties_by_host(self, host_id: int, db: AsyncSession) -> List[PropertyResponse]:
+        try:
+            return await self.repository.get_properties_by_host(host_id)
+        except SQLAlchemyError as e:
+            logger.error(f"Lỗi cơ sở dữ liệu khi lấy danh sách properties cho host {host_id}: {str(e)}")
+            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
+        

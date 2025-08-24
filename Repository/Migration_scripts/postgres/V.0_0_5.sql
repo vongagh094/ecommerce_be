@@ -1,3 +1,9 @@
+-- đổi type value từ uuid-> integer
+
+-- Thêm cột user_id, auction_id cho bids table
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS user_id BIGINT ;
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS auction_id UUID ;
+
 -- thêm cột auction_id cho calendar_availability
 ALTER TABLE calendar_availability
 ADD COLUMN IF NOT EXISTS auction_id UUID;
@@ -51,12 +57,13 @@ BEGIN
         ) VALUES (
             NEW.property_id,
             loop_date,
-            NEW.id::TEXT,
+            NEW.id,
             0,
             TRUE,
             now(),
             now()
-        ) ON CONFLICT (property_id, date, auction_id)
+        ) ON CONFLICT (property_id, auction_id, date)
+        WHERE auction_id IS NOT NULL
         DO UPDATE SET
             price_amount = EXCLUDED.price_amount,
             is_available = EXCLUDED.is_available,
