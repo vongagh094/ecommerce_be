@@ -1,6 +1,6 @@
 import uuid
 from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query, InstrumentedAttribute
 from sqlalchemy import text
 from datetime import date, datetime
 from sqlalchemy import and_
@@ -165,3 +165,25 @@ class CalendarRepository:
                 CalendarAvailability.auction_id == uuid.UUID(auction_id)
             )
         ).all()
+    def update_calendar_availability_is_available(self,is_available: bool, auction_id:str, property_id:int ) -> list[
+                                                                                                       InstrumentedAttribute] | \
+                                                                                           list[Any]:
+        try:
+            calendar_dates =  self.db.query(CalendarAvailability).filter(
+                and_(
+                    CalendarAvailability.auction_id == uuid.UUID(auction_id),
+                    CalendarAvailability.property_id == property_id
+                )
+            ).all()
+
+            for calendar_date in calendar_dates:
+                calendar_date.is_available = is_available
+                if hasattr(calendar_date, 'updated_at'):
+                    calendar_date.updated_at = datetime.now()
+            self.db.commit()
+            return [i.is_available for i in calendar_dates]
+
+        except Exception as e:
+            print(f"Error updating calendar availability: {e}")
+            self.db.rollback()
+            return []

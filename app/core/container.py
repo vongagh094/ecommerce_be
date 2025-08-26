@@ -233,5 +233,6 @@ class Container(containers.DeclarativeContainer):
     winner_service = providers.Factory(
         WinnerService,
         bid_repository=bid_repository,
-        auction_repository=auction_repository
+        auction_repository=auction_repository,
+        calendar_repository=calendar_repository
     )
