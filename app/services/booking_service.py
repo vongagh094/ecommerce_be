@@ -1,6 +1,7 @@
 from uuid import UUID
 from typing import List
 from fastapi import HTTPException
+from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -212,15 +213,25 @@ class BookingService:
 
     async def get_occupancy(self, property_id: int, db: AsyncSession, period: str, num_points: int, units_available: int = 1) -> List[OccupancyDataPoint]:
         try:
+            period = period.lower()  # Chuẩn hóa period
             if period not in ["daily", "weekly", "monthly"]:
                 raise ValueError("Period phải là 'daily', 'weekly', hoặc 'monthly'")
-            occupancy_data = await self.repository.get_occupancy(property_id, period, num_points, units_available)
+            occupancy_data = await self.repository.get_occupancy(db, property_id, period, num_points, units_available)
             return [OccupancyDataPoint(**data) for data in occupancy_data]
         except ValueError as e:
             logger.error(f"Lỗi khi lấy tỷ lệ lấp đầy cho property {property_id}: {str(e)}")
             raise HTTPException(status_code=422, detail={"detail": str(e)})
+        except ValidationError as e:
+            logger.error(f"Lỗi xác thực Pydantic khi lấy tỷ lệ lấp đầy cho property {property_id}: {str(e)}")
+            raise HTTPException(status_code=422, detail={"detail": str(e)})
+        except HTTPException as e:
+            logger.error(f"Lỗi từ repository khi lấy tỷ lệ lấp đầy cho property {property_id}: {str(e)}")
+            raise
         except SQLAlchemyError as e:
             logger.error(f"Lỗi cơ sở dữ liệu khi lấy tỷ lệ lấp đầy cho property {property_id}: {str(e)}")
+            raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
+        except Exception as e:
+            logger.error(f"Lỗi server khi lấy tỷ lệ lấp đầy cho property {property_id}: {str(e)}")
             raise HTTPException(status_code=500, detail={"detail": f"Lỗi server: {str(e)}"})
 
     async def get_property_stats(self, property_id: int, db: AsyncSession) -> PropertyStats:

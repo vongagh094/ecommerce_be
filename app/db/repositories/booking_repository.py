@@ -1,5 +1,6 @@
 from uuid import UUID
 from typing import List, Dict
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
@@ -104,7 +105,10 @@ class BookingRepository:
                 start_date = datetime(year, month, 1)
                 end_date = (start_date + timedelta(days=31)).replace(day=1) - timedelta(days=1) if month < 12 else datetime(year, 12, 31)
                 
-                query = select(func.sum(Booking.total_amount), func.avg(Booking.total_amount)).where(
+                query = select(
+                    func.sum(Booking.total_amount).label("actual"),
+                    func.avg(Booking.total_amount).label("expected")
+                ).where(
                     Booking.property_id == property_id,
                     Booking.booking_status == "CONFIRMED",
                     Booking.check_in_date >= start_date,
@@ -136,81 +140,67 @@ class BookingRepository:
         except Exception as e:
             logger.error(f"Lỗi server khi lấy doanh thu hàng tháng cho property {property_id}: {str(e)}")
             raise
-
-    async def get_occupancy(self, property_id: int, period: str, num_points: int, units_available: int = 1) -> List[Dict]:
+    async def get_occupancy(self, db: AsyncSession, property_id: int, period: str, num_points: int, units_available: int = 1) -> List[Dict]:
         try:
             if period not in ["daily", "weekly", "monthly"]:
-                raise ValueError("Period phải là 'daily', 'weekly', hoặc 'monthly'")
-            occupancy_data = []
-            start_date = datetime.now()
+                raise HTTPException(status_code=400, detail="Period phải là 'daily', 'weekly' hoặc 'monthly'")
+            
+            # Sử dụng datetime.utcnow() và chuyển thành datetime.date
+            end_date = datetime.utcnow().date()
             if period == "daily":
-                start_date = start_date - timedelta(days=num_points - 1)
-                for i in range(num_points):
-                    day = start_date + timedelta(days=i)
-                    query = select(Booking).where(
-                        Booking.property_id == property_id,
-                        Booking.booking_status == "CONFIRMED",
-                        Booking.check_in_date <= day,
-                        Booking.check_out_date >= day
-                    )
-                    result = await self.db.execute(query)
-                    bookings = result.scalars().all()
-                    total_occupied_days = sum(1 for _ in bookings)
-                    occupancy_rate = (total_occupied_days / units_available) * 100 if units_available > 0 else 0
-                    occupancy_data.append({
-                        "date": day.strftime("%Y-%m-%d"),
-                        "occupancyRate": round(occupancy_rate, 2),
-                        "period": period
-                    })
+                start_date = end_date - timedelta(days=num_points)
+                time_delta = timedelta(days=1)
             elif period == "weekly":
-                start_date = start_date - timedelta(days=(num_points - 1) * 7)
-                for i in range(num_points):
-                    week_start = start_date + timedelta(days=i * 7)
-                    week_end = week_start + timedelta(days=6)
-                    query = select(Booking).where(
-                        Booking.property_id == property_id,
-                        Booking.booking_status == "CONFIRMED",
-                        Booking.check_in_date <= week_end,
-                        Booking.check_out_date >= week_start
-                    )
-                    result = await self.db.execute(query)
-                    bookings = result.scalars().all()
-                    total_occupied_days = sum((min(booking.check_out_date, week_end) - max(booking.check_in_date, week_start)).days + 1 for booking in bookings)
-                    total_possible_days = units_available * 7
-                    occupancy_rate = (total_occupied_days / total_possible_days) * 100 if total_possible_days > 0 else 0
-                    occupancy_data.append({
-                        "date": week_start.strftime("%Y-%m-%d"),
-                        "occupancyRate": round(occupancy_rate, 2),
-                        "period": period
-                    })
+                start_date = end_date - timedelta(weeks=num_points)
+                time_delta = timedelta(weeks=1)
             elif period == "monthly":
-                start_date = start_date - timedelta(days=(num_points - 1) * 30)
-                for i in range(num_points):
-                    month_start = (start_date + timedelta(days=i * 30)).replace(day=1)
-                    month_end = (month_start + timedelta(days=31)).replace(day=1) - timedelta(days=1)
-                    query = select(Booking).where(
-                        Booking.property_id == property_id,
-                        Booking.booking_status == "CONFIRMED",
-                        Booking.check_in_date <= month_end,
-                        Booking.check_out_date >= month_start
-                    )
-                    result = await self.db.execute(query)
-                    bookings = result.scalars().all()
-                    total_occupied_days = sum((min(booking.check_out_date, month_end) - max(booking.check_in_date, month_start)).days + 1 for booking in bookings)
-                    total_possible_days = units_available * (month_end - month_start).days
-                    occupancy_rate = (total_occupied_days / total_possible_days) * 100 if total_possible_days > 0 else 0
-                    occupancy_data.append({
-                        "date": month_start.strftime("%Y-%m-%d"),
-                        "occupancyRate": round(occupancy_rate, 2),
-                        "period": period
-                    })
+                start_date = end_date - timedelta(days=num_points * 30)
+                time_delta = timedelta(days=30)
+            else:
+                logger.error(f"Period không hợp lệ: {period}")
+                raise HTTPException(status_code=400, detail="Period phải là 'daily', 'weekly' hoặc 'monthly'")
+
+            # Truy vấn các đặt phòng hợp lệ
+            query = select(Booking).where(
+                Booking.property_id == property_id,
+                Booking.booking_status == "CONFIRMED",
+                Booking.check_out_date > Booking.check_in_date,
+                # Chuyển đổi datetime.date thành datetime.datetime để so sánh
+                Booking.check_in_date <= datetime.combine(end_date, datetime.min.time()),
+                Booking.check_out_date >= datetime.combine(start_date, datetime.min.time())
+            )
+            result = await db.execute(query)
+            bookings = result.scalars().all()
+
+            logger.info(f"Tìm thấy {len(bookings)} đặt phòng hợp lệ cho property_id={property_id}")
+
+            # Tạo danh sách các khoảng thời gian
+            occupancy_data = []
+            current_date = start_date
+            while current_date < end_date:
+                booked_nights = 0
+                total_nights = time_delta.days * units_available
+
+                # Tính số đêm được đặt trong khoảng thời gian
+                for booking in bookings:
+                    booking_start = max(booking.check_in_date.date() if isinstance(booking.check_in_date, datetime) else booking.check_in_date, current_date)
+                    booking_end = min(booking.check_out_date.date() if isinstance(booking.check_out_date, datetime) else booking.check_out_date, current_date + time_delta)
+                    if booking_end > booking_start:
+                        booked_nights += (booking_end - booking_start).days
+
+                # Tính tỷ lệ lấp đầy
+                occupancy_rate = (booked_nights / total_nights * 100) if total_nights > 0 else 0
+                occupancy_data.append({
+                    "date": current_date.strftime("%Y-%m-%d"),
+                    "occupancyRate": round(occupancy_rate, 2),
+                    "period": period
+                })
+                current_date += time_delta
+
             return occupancy_data
-        except SQLAlchemyError as e:
-            logger.error(f"Lỗi cơ sở dữ liệu khi lấy tỷ lệ lấp đầy cho property {property_id}: {str(e)}")
-            raise
-        except ValueError as e:
-            logger.error(f"Lỗi khi lấy tỷ lệ lấp đầy cho property {property_id}: {str(e)}")
-            raise
+        except Exception as e:
+            logger.error(f"Lỗi khi tính toán tỷ lệ lấp đầy cho property_id={property_id}, period={period}: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Lỗi máy chủ: {str(e)}")
 
     async def get_property_stats(self, property_id: int) -> Dict:
         try:
