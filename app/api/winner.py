@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from dependency_injector.wiring import Provide, inject
-
 from app.features.notification.services.notification_service import NotificationService
+from app.services.calendar_service import CalendarService
 from app.services.winner_service import WinnerService
 from app.core.container import Container
 from app.schemas.winnerDTO import DailyWinner
@@ -36,9 +36,13 @@ def get_auction_winners(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# Simple health check
-@router.get("/check/health")
-def health():
-    return {"status": "ok"}
+@router.post("/after_winner/{auction_id}")
+@inject
+def after_winner(
+        auction_id: str,
+        property_id: int,
+        winner_service: WinnerService = Depends(Provide[Container.winner_service])
+):
+    return winner_service.update_calendar_entry(
+        auction_id, property_id ,False
+    )
